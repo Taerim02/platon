@@ -9,7 +9,7 @@ import subprocess as sp
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import pyfastx
-
+import cProfile
 
 import __init__ as init
 import db as db
@@ -30,7 +30,6 @@ def main():
     cfg.prefix = args.prefix if args.prefix else Path(args.genome).stem
     
     try:
-  
         output_path = Path(args.output) if args.output else Path.cwd()
         if(not output_path.exists()):
             output_path.mkdir(parents=True, exist_ok=True)
@@ -136,7 +135,6 @@ def main():
         log.error('something went wrong!', exc_info=True)
         sys.exit('ERROR: something went wrong!')
 
-
     if(args.verbose):
         print(f'\tparsed {len(raw_contigs)} raw contigs')
         print(f'\texcluded {len(raw_contigs) - len(contigs)} contigs by size filter')
@@ -157,19 +155,19 @@ def main():
             print('No potential plasmid contigs found. Please, check contig lengths. Maybe you passed a finished or pseudo genome?')
         sys.exit(0)
 
-
-
-    # predict ORFs
     if(args.verbose):
         print('predict ORFs...')
-    proteins_path = pf.predict_orfs(contigs, cfg.genome_path)
+    #proteins_path = pf.predict_orfs(contigs, cfg.genome_path)
+    proteins_path = cfg.tmp_path.joinpath('proteins.faa')
+    orf_finder = pf.train_gene_prediction(contigs)
+    for record in pyfastx.Fasta(str(cfg.genome_path)):  # prefilter contigs ############################################# fix
+        pf.predict_orfs_py(contigs, record, proteins_path, orf_finder)
     if(proteins_path is None):
         sys.exit('Error: ORF prediction failed!')
     no_orfs = ft.reduce(lambda x, y: x + y, map(lambda k: len(contigs[k]['orfs']), contigs))
     log.info('ORF detection: # ORFs=%d', no_orfs)
     if(args.verbose):
         print(f'\tfound {no_orfs} ORFs')
-         
 
     # retain / exclude contigs without ORFs
     if(args.characterize or args.mode == 'sensitivity' or args.mode == 'accuracy'):
@@ -183,8 +181,6 @@ def main():
             print(f'\tdiscarded {no_removed_contigs} contig(s) without ORFs')
         contigs = tmp_contigs
         log.info('ORF contig filter: # discarded=%s, # remaining=%s', no_removed_contigs, len(contigs))
-
-
 
 
     # find marker genes
@@ -222,15 +218,14 @@ def main():
         )
         sys.exit('Marker protein search failed!')
 
-
-    # parse diamond output                                        # search MPS
+    # parse diamond output
     proteins_identified = 0
     with tmp_output_path.open() as fh:
         for line in fh:
             cols = line.split('\t')
             locus = cols[0].rpartition('_')
             contig_id = locus[0]
-            orf_id = locus[2]
+            orf_id = int(locus[2])
             if((float(cols[2]) >= pc.MIN_PROTEIN_IDENTITY) and (contig_id in contigs)):
                 contig = contigs[contig_id]
                 orf = contig['orfs'][orf_id]
@@ -240,7 +235,7 @@ def main():
     if(args.verbose):
         print(f'\tfound {proteins_identified} MPS')
 
-    # parse protein score file 
+    # parse protein score file
     if(args.verbose):
         print('compute replicon distribution scores (RDS)...')
     marker_proteins = {}
@@ -295,7 +290,6 @@ def main():
                 fh.write(f'>{orf_name}\n')
                 fh.write(f'{record.seq}\n')
 
-
     # write contig sequences to fasta files for subsequent parallel analyses
     for id, contig in scored_contigs.items():
         contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
@@ -303,45 +297,24 @@ def main():
             fh.write(f">{contig['id']}\n")
             fh.write(f"{contig['sequence']}\n")
 
-
+    #pf.search_mobilization_genes_py(scored_contigs, filtered_proteins_path)
     # filter contigs
     filtered_contigs = None
-
-    if(args.module == 'metagenomic'):
-        # init thread pool to parallize io bound analyses
-        with ThreadPoolExecutor(max_workers=args.threads) as tpe:
-            # start search for replication, mobilization and conjugation genes
-            for fn in (pf.search_replication_genes, pf.search_mobilization_genes, pf.search_conjugation_genes, pf.search_amr_genes):
-                tpe.submit(fn, scored_contigs, filtered_proteins_path)
-            # analyse contigs
-            for id, contig in scored_contigs.items():
-                while (bool(contig['type']) == False):
-                    tpe.submit(pf.test_circularity, contig)
-                    tpe.submit(pf.search_inc_type, contig)
-                    tpe.submit(pf.search_orit_sequences, contig) 
-                    tpe.submit(pf.search_rrnas, contig)
-                    tpe.submit(pf.search_reference_plasmids, contig)
-                    break   
-    else:
-        with ThreadPoolExecutor(max_workers=args.threads) as tpe:
-            # start search for replication, mobilization and conjugation genes
-            for fn in (pf.search_replication_genes, pf.search_mobilization_genes, pf.search_conjugation_genes, pf.search_amr_genes):
-                tpe.submit(fn, scored_contigs, filtered_proteins_path)
-            # analyse contigs
-            for id, contig in scored_contigs.items():
-                tpe.submit(pf.test_circularity, contig)
-                tpe.submit(pf.search_inc_type, contig)
-                tpe.submit(pf.search_rrnas, contig)
-                tpe.submit(pf.search_orit_sequences, contig)
-                tpe.submit(pf.search_reference_plasmids, contig)
+    with ThreadPoolExecutor(max_workers=args.threads) as tpe:
+        # start search for replication, mobilization and conjugation genes
+        for fn in (pf.search_replication_genes_py, pf.search_mobilization_genes_py, pf.search_conjugation_genes_py, pf.search_amr_genes_py):
+            tpe.submit(fn, scored_contigs, filtered_proteins_path)
+        # analyse contigs
+        for id, contig in scored_contigs.items():
+            tpe.submit(pf.test_circularity, contig)
+            tpe.submit(pf.search_inc_type, contig)
+            tpe.submit(pf.search_rrnas, contig)
+            tpe.submit(pf.search_orit_sequences, contig)
+            tpe.submit(pf.search_reference_plasmids, contig)
     
     if(args.characterize):  # skip protein score based filtering
         filtered_contigs = scored_contigs
     elif(args.mode == 'sensitivity'):  # skip protein score based filtering but apply rRNA filter
-        # init thread pool to parallize io bound analyses
-        with ThreadPoolExecutor(max_workers=args.threads) as tpe:
-            for id, contig in scored_contigs.items(): 
-                tpe.submit(pf.search_rrnas, contig) 
         filtered_contigs = {k: v for (k, v) in scored_contigs.items() if len(v['rrnas']) == 0}
     elif(args.mode == 'specificity'):
         filtered_contigs = {k: v for (k, v) in scored_contigs.items() if v['protein_score'] >= pc.RDS_SPECIFICITY_THRESHOLD}
