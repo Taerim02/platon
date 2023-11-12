@@ -131,9 +131,11 @@ def main():
     except: 
         log.error('something went wrong!', exc_info=True)
         sys.exit('ERROR: something went wrong!')
+        
+    for name in ['rrnas', 'orit', 'inc', 'ref', 'orf', 'function']:
+        if not os.path.exists(f'tmp/{name}'):
+            os.mkdir(f'tmp/{name}')
 
-    if not os.path.exists(f'tmp/orf'):
-        os.mkdir(f'tmp/orf')
 
     i_list = pf.contigs_into_chunks(contigs, pc.DEFAULT_CONTIG_SIZE) 
 
@@ -154,15 +156,6 @@ def main():
     full_filtered_proteins_path = os.path.join('tmp', f"{name}_filtered.faa")
     pf.faa_into_chunk(full_filtered_proteins_path, pc.DEFAULT_CONTIG_SIZE)
     os.remove(full_filtered_proteins_path)
-
-    if not os.path.exists(f'tmp/function'):
-        os.mkdir(f'tmp/function')
-    
-    for name in ['amr', 'rrnas', 'orit', 'conj', 'cir', 'inc', 'ref', 'mob', 'rep']:
-        if not os.path.exists(f'tmp/{name}'):
-            os.mkdir(f'tmp/{name}')
-        if not os.path.exists(f'tmp/function/{name}'):
-            os.mkdir(f'tmp/function/{name}')
 
     result2 = snakemake(
         snakefile="Snakefile_meta_2_blast.py",
