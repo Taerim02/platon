@@ -7,8 +7,10 @@ import re
 import sys
 import subprocess as sp
 
-import platon
-import platon.constants as pc
+import __init__ as init
+import constants as pc
+
+#print(init.__version__)
 
 
 log = logging.getLogger('UTILS')
@@ -47,17 +49,17 @@ def parse_arguments():
     arg_group_io.add_argument('--output', '-o', action='store', default=os.getcwd(), help='Output directory (default = current working directory)')
     
     arg_group_workflow = parser.add_argument_group('Workflow')
+    arg_group_workflow.add_argument('--module', '-u', action='store', type=str, choices=['single', 'metagenomic'], default='single', help = 'use single or metagenome gene prediction mode')
     arg_group_workflow.add_argument('--mode', '-m', action='store', type=str, choices=['sensitivity', 'accuracy', 'specificity'], default='accuracy', help='applied filter mode: sensitivity: RDS only (>= 95%% sensitivity); specificity: RDS only (>=99.9%% specificity); accuracy: RDS & characterization heuristics (highest accuracy) (default = accuracy)')
     arg_group_workflow.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
-    arg_group_workflow.add_argument('--meta', action='store_true', help='use metagenome gene prediction mode')
+    #arg_group_workflow.add_argument('--meta', action='store_true', help='use metagenome gene prediction mode')
     
     arg_group_general = parser.add_argument_group('General')
     arg_group_general.add_argument('--help', '-h', action='help', help='Show this help message and exit')
     arg_group_general.add_argument('--verbose', '-v', action='store_true', help='Print verbose information')
     arg_group_general.add_argument('--threads', '-t', action='store', type=int, default=mp.cpu_count(), help='Number of threads to use (default = number of available CPUs)')
-    arg_group_general.add_argument('--version', action='version', version=f'%(prog)s {platon.__version__}')
+    arg_group_general.add_argument('--version', action='version', version=f'%(prog)s {init.__version__}')
     return parser.parse_args()
-
 
 def read_tool_output(dependency):
         """Method for reading tool version with regex. Input: regex expression, tool command. Retursn: version number."""
@@ -130,5 +132,4 @@ def test_dependencies():
             sys.exit(f'ERROR: Wrong {dependency[3][0]} version installed. Please, install {dependency[3][0]} version {dependency[0]}!')
         else:
             log.info('dependency check: tool=%s, version=%s', dependency[3][0], version)
-
 
