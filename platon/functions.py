@@ -1,34 +1,186 @@
 import logging
 import subprocess as sp
 
-import platon.config as cfg
-import platon.constants as pc
+import config as cfg
+import constants as pc
+import pyrodigal
+import re
+import pyhmmer
+import pandas as pd
 
+import os 
+import pyfastx
 
 log = logging.getLogger('functions')
+
+def get_base_name(file_name):
+    return os.path.splitext(os.path.basename(file_name))[0]
+
+def check_plasmid_true(contig, var_name):
+    if contig[var_name] == True and not contig['type']: # avoid overwriting multiple times    
+        contig['type'] = "plasmid"    
+    return
+
+def check_plasmid_length(contig, var_name):
+    if len(contig[var_name]) > 0 and not contig['type']:
+        contig['type'] = "plasmid"
+    return
+
+def write_sequence_to_file(contig, contig_split_position, header):
+    file_path = cfg.tmp_path.joinpath(f"{contig['id']}-{header}.fasta")
+    if header == 'a':
+        sequence = contig['sequence'][:contig_split_position]
+    elif header == 'b':
+        sequence = contig['sequence'][contig_split_position:]
+    with file_path.open(mode='w') as fh:
+        fh.write('>{header}\n')
+        fh.write(sequence +'\n ')
+    return file_path, sequence
+
+def run_command(cmd, env=False):
+    env = cfg.env if env else None
+    proc = sp.run(
+        cmd,
+        cwd=str(cfg.tmp_path),
+        env=env,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        universal_newlines=True
+    )
+    return proc
+
+def delete_empty_file(file_path):
+    if os.path.isfile(file_path) and os.path.getsize(file_path) == 0:
+        os.remove(file_path)
+
+def proc_error(var, var_error, proc, cmd, contig):
+    if(proc.returncode != 0):
+        log.warning(
+            '%s failed! contig=%s, %s=%d',
+            var, contig['id'], var_error, proc.returncode
+        )
+        log.debug(
+            '%s: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
+            var, contig['id'], cmd, proc.stdout, proc.stderr
+        )
+        return
+
+
+def contigs_into_chunks(contigs, contig_size):
+    contigs_to_save = []
+    current_size = 0
+    i_list = []
+    i = 0
+    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    
+    for contig in contigs.values():
+        contig_name = contig['id']
+        contig_sequence = contig['sequence']
+        contig_length = contig['length']
+        
+        if current_size + contig_length <= contig_size:
+            contigs_to_save.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
+            current_size += contig_length
+        else:
+            i += 1
+            i_list.append(i)
+            contig_file_path = os.path.join(cfg.output_path, f'{name}_{i}.fasta')
+            with open(contig_file_path, 'w') as contig_file:
+                for saved_contig in contigs_to_save:
+                    contig_file.write(f">{saved_contig['contig_name']}\n")
+                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
+            contigs_to_save = []
+            current_size = 0
+    
+    # Handle the last batch of contigs
+    if contigs_to_save:
+        i += 1
+        contig_file_path = os.path.join(cfg.output_path, f'{name}_{i}.fasta')
+        with open(contig_file_path, 'w') as contig_file:
+            for saved_contig in contigs_to_save:
+                contig_file.write(f">{saved_contig['contig_name']}\n")
+                contig_file.write(f"{saved_contig['contig_sequence']}\n")
+    return i_list
+
+def delete_contig_files(i_list):
+    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    for i in i_list:
+        os.remove(os.path.join(cfg.output_path, f'{name}_{i}.fasta'))
+
+def fasta_into_chunk(fasta_file, contig_size):
+    contigs_to_save = []
+    current_size = 0
+    i = 0
+    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    for record in pyfastx.Fasta(str(fasta_file)):
+        contig_name = record.name
+        contig_sequence = str(record.seq)
+        contig_length = len(record.seq)
+        
+        if current_size + contig_length <= contig_size:
+            contigs_to_save.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
+            current_size += contig_length
+        else:
+            i += 1
+            contig_file_path = os.path.join('tmp', f'{name}_{i}_filtered.fasta')
+            with open(contig_file_path, 'w') as contig_file:
+                for saved_contig in contigs_to_save:
+                    contig_file.write(f">{saved_contig['contig_name']}\n")
+                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
+            contigs_to_save = []
+            current_size = 0
+    
+    # Handle the last batch of contigs
+    if contigs_to_save:
+        i += 1
+        contig_file_path = os.path.join('tmp', f'{name}_{i}_filtered.fasta')
+        with open(contig_file_path, 'w') as contig_file:
+            for saved_contig in contigs_to_save:
+                contig_file.write(f">{saved_contig['contig_name']}\n")
+                contig_file.write(f"{saved_contig['contig_sequence']}\n")
+
+def faa_into_chunk(faa_file, contig_size):
+    contigs_to_save = []
+    current_size = 0
+    i = 0
+    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    for record in pyfastx.Fasta(str(faa_file)):
+        orf_name = str(record.name).split()[0]
+        contig_sequence = str(record.seq)
+        contig_length = len(record.seq)
+        
+        if current_size + contig_length <= contig_size:
+            contigs_to_save.append({'orf_name': orf_name, 'contig_sequence': contig_sequence})
+            current_size += contig_length
+        else:
+            i += 1
+            contig_file_path = os.path.join('tmp', f'{name}_{i}_filtered.faa')
+            with open(contig_file_path, 'w') as contig_file:
+                for saved_contig in contigs_to_save:
+                    contig_file.write(f">{saved_contig['orf_name']}\n")
+                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
+            contigs_to_save = []
+            current_size = 0
+    
+    # Handle the last batch of contigs
+    if contigs_to_save:
+        i += 1
+        contig_file_path = os.path.join('tmp', f'{name}_{i}_filtered.faa')
+        with open(contig_file_path, 'w') as contig_file:
+            for saved_contig in contigs_to_save:
+                contig_file.write(f">{saved_contig['orf_name']}\n")
+                contig_file.write(f"{saved_contig['contig_sequence']}\n")
 
 
 def test_circularity(contig):
     """Test if this contig can be circularized."""
-
     contig_split_position = int(contig['length'] / 2)
-
-    contig_fragment_a_path = cfg.tmp_path.joinpath(f"{contig['id']}-a.fasta")
-    contig_fragment_a_seq = contig['sequence'][:contig_split_position]
-    with contig_fragment_a_path.open(mode='w') as fh:
-        fh.write('>a\n')
-        fh.write(contig_fragment_a_seq + '\n ')
-
-    contig_fragment_b_path = cfg.tmp_path.joinpath(f"{contig['id']}-b.fasta")
-    contig_fragment_b_seq = contig['sequence'][contig_split_position:]
-    with contig_fragment_b_path.open(mode='w') as fh:
-        fh.write('>b\n')
-        fh.write(contig_fragment_b_seq + '\n ')
+    contig_fragment_a_path, contig_fragment_a_seq = write_sequence_to_file(contig, contig_split_position, 'a')
+    contig_fragment_b_path, contig_fragment_b_seq = write_sequence_to_file(contig, contig_split_position, 'b')
     log.debug(
         'circularity: contig=%s, len=%d, seq-a-len=%d, seq-b-len=%d',
         contig['id'], contig['length'], len(contig_fragment_a_seq), len(contig_fragment_b_seq)
     )
-
     cmd = [
         'nucmer',
         '-f',  # only forward strand
@@ -38,24 +190,8 @@ def test_circularity(contig):
         str(contig_fragment_b_path),
         str(contig_fragment_a_path)
     ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'circularity failed! contig=%s, nucmer-error-code=%d',
-            contig['id'], proc.returncode
-        )
-        log.debug(
-            'circularity: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            contig['id'], cmd, proc.stdout, proc.stderr
-        )
-        return
-
+    proc = run_command(cmd, env=False)
+    proc_error('circularity', 'nucmer-error-code', proc, cmd, contig)
     has_match = False
     with cfg.tmp_path.joinpath(f"{contig['id']}.delta").open() as fh:
         for line in fh:
@@ -93,15 +229,14 @@ def test_circularity(contig):
                         )
                         break
     log.info('circularity: contig=%s, is-circ=%s', contig['id'], contig['is_circular'])
+    check_plasmid_true(contig, 'is_circular')
     return
 
 
-def search_inc_type(contig):
+def search_inc_type(contig):    ## why they do not record for the coverage and identity?
     """Search for incompatibility motifs."""
-
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.inc.blast.out")
-
     cmd = [
         'blastn',
         '-query', str(cfg.db_path.joinpath('inc-types.fasta')),
@@ -112,29 +247,13 @@ def search_inc_type(contig):
         '-outfmt', '6 qseqid sstart send sstrand pident qcovs bitscore',
         '-out', str(tmp_output_path)
     ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        env=cfg.env,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'inc-type failed! contig=%s, blastn-error-code=%d',
-            contig['id'], proc.returncode
-        )
-        log.debug(
-            'inc-type: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            contig['id'], cmd, proc.stdout, proc.stderr
-        )
-        return
-
+    proc = run_command(cmd, env=True)
+    proc_error('inc-type', 'blastn-error-code', proc, cmd, contig)
     hits_per_pos = {}
     with tmp_output_path.open() as fh:
         for line in fh:
             cols = line.rstrip().split('\t')
+            #log.info('inc:', len(cols))
             hit = {
                 'type': cols[0],
                 'start': int(cols[1]),
@@ -160,18 +279,16 @@ def search_inc_type(contig):
                         'inc-type: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
                         contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                     )
-
     contig['inc_types'] = list(hits_per_pos.values())
     log.info('inc-type: contig=%s, # inc-types=%s', contig['id'], len(contig['inc_types']))
+    check_plasmid_length(contig, 'inc_types')
     return
 
 
 def search_rrnas(contig):
     """Search for ribosomal RNA sequences."""
-
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.rrna.cmscan.tsv")
-
     cmd = [
         'cmscan',
         '--noali',
@@ -181,28 +298,13 @@ def search_rrnas(contig):
         str(cfg.db_path.joinpath('rRNA')),
         str(contig_path)
     ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'rRNAs failed! contig=%s, cmscan-error-code=%d',
-            contig['id'], proc.returncode
-        )
-        log.debug(
-            'rRNAs: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            contig['id'], cmd, proc.stdout, proc.stderr
-        )
-        return
-
+    proc = run_command(cmd, env=False)
+    proc_error('rRNAs', 'cmscan-error-code', proc, cmd, contig)
     with tmp_output_path.open() as fh:
         for line in fh:
             if(line[0] != '#'):
                 cols = line.rstrip().split()
+                #log.info('rnnas:', cols)
                 hit = {
                     'type': cols[0],
                     'start': int(cols[7]),
@@ -219,62 +321,6 @@ def search_rrnas(contig):
     log.info('rRNAs: contig=%s, # rRNAs=%s', contig['id'], len(contig['rrnas']))
     return
 
-
-def search_amr_genes(contigs, filteredProteinsPath):
-    """Search for AMR genes."""
-
-    tmp_output_path = cfg.tmp_path.joinpath('amr.hmm.out')
-    cmd = [
-        'hmmsearch',
-        '--noali',
-        '--cpu', '1',
-        '--cut_tc',
-        '--tblout', str(tmp_output_path),
-        str(cfg.db_path.joinpath('ncbifam-amr')),
-        str(filteredProteinsPath)
-    ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning('AMRs failed! hmmsearch-error-code=%d', proc.returncode)
-        log.debug(
-            'AMRs: cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            cmd, proc.stdout, proc.stderr
-        )
-        return
-
-    hits = set()
-    with tmp_output_path.open() as fh:
-        for line in fh:
-            if(line[0] != '#'):
-                cols = line.rstrip().split()
-                if(cols[0] not in hits):
-                    tmp = cols[0].rsplit('_', 1)
-                    contig_id = tmp[0]
-                    contig = contigs[contig_id]
-                    orf = contig['orfs'][tmp[1]]
-                    hit = {
-                        'type': cols[2],
-                        'hmm-id': cols[3],
-                        'start': int(orf['start']),
-                        'end': int(orf['end']),
-                        'strand': orf['strand'],
-                        'bitscore': float(cols[5]),
-                        'evalue': float(cols[4])
-                    }
-                    hits.add(cols[0])
-                    contig['amr_hits'].append(hit)
-                    log.info(
-                        'AMRs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
-                        contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
-                    )
-    log.info('AMRs: contig=%s, # AMRs=%s', contig['id'], len(contig['amr_hits']))
-    return
 
 
 def search_reference_plasmids(contig):
@@ -299,25 +345,8 @@ def search_reference_plasmids(contig):
         '-outfmt', '6 sseqid qstart qend sstart send slen length nident',
         '-out', str(tmp_output_path)
     ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        env=cfg.env,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'ref plasmids failed! contig=%s, blastn-error-code=%d',
-            contig['id'], proc.returncode
-        )
-        log.debug(
-            'ref plasmids: id=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            contig['id'], cmd, proc.stdout, proc.stderr
-        )
-        return
-
+    proc = run_command(cmd, env=True)
+    proc_error('ref plasmids', 'blastn-error-code', proc, cmd, contig)
     with tmp_output_path.open() as fh:
         for line in fh:
             line = line.rstrip()
@@ -349,7 +378,6 @@ def search_orit_sequences(contig):
 
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.orit.blast.out")
-
     cmd = [
         'blastn',
         '-query', str(contig_path),
@@ -361,25 +389,8 @@ def search_orit_sequences(contig):
         '-outfmt', '6 sseqid qstart qend sstart send slen length nident',
         '-out', str(tmp_output_path)
     ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        env=cfg.env,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'oriT failed! contig=%s, blastn-error-code=%d',
-            contig['id'], proc.returncode
-        )
-        log.debug(
-            'oriT: id=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            contig['id'], cmd, proc.stdout, proc.stderr
-        )
-        return
-
+    proc = run_command(cmd, env=True)
+    proc_error('oriT', 'blastn-error-code', proc, cmd, contig)
     with tmp_output_path.open() as fh:
         for line in fh:
             line = line.rstrip()
@@ -403,10 +414,27 @@ def search_orit_sequences(contig):
                     contig['id'], hit['orit']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
     log.info('oriT: contig=%s, # oriT=%s', contig['id'], len(contig['orit_hits']))
+    check_plasmid_length(contig, 'orit_hits')
     return
 
 
 def filter_contig(contig):
+    """Apply heuristic filters based on contig information."""
+    if(contig['type'] == "plasmid"):
+        return True
+    elif(contig['protein_score'] >= pc.RDS_SPECIFICITY_THRESHOLD):
+        log.debug('filter: RDS > SPT! contig=%s', contig['id'])
+        return True
+    elif(contig['protein_score'] >= pc.RDS_CONSERVATIVE_THRESHOLD
+            and len(contig['plasmid_hits']) > 0
+            and len(contig['rrnas']) == 0):
+        log.debug('filter: RDS > CT & plasmid hits & no rRNAs! contig=%s', contig['id'])
+        return True
+    else:
+        return False
+        
+        
+def filter_contig_meta(contig):
     """Apply heuristic filters based on contig information."""
 
     # include all circular contigs
@@ -443,236 +471,164 @@ def filter_contig(contig):
     if(contig['protein_score'] >= pc.RDS_CONSERVATIVE_THRESHOLD
             and len(contig['plasmid_hits']) > 0
             and len(contig['rrnas']) == 0):
+
         log.debug('filter: RDS > CT & plasmid hits & no rRNAs! contig=%s', contig['id'])
         return True
 
     return False
+    
 
+def train_gene_prediction(contigs): ##if(not pyrodigal_metamode):
+    training_info = None
+    log.info('create prodigal training info object: meta=%s, not pyrodigal_metamode')
+    orf_finder = pyrodigal.OrfFinder(meta= False, closed=True)
+    seqs = [contig['sequence'] for id, contig in contigs.items()]
+    combined_sequence = ''.join(seqs)
+    bytes_combined_sequence = combined_sequence.encode('utf-8')
+    training_info = orf_finder.train(bytes_combined_sequence) ##  list comprehsion
+    return training_info
 
-def predict_orfs(contigs, filteredDraftGenomePath):
-    """Predict open reading frames with Prodigal."""
-
-    proteins_path = cfg.tmp_path.joinpath('proteins.faa')
-    gff_path = cfg.tmp_path.joinpath('prodigal.gff')
-    cmd = [
-        'prodigal',
-        '-i', str(filteredDraftGenomePath),
-        '-a', str(proteins_path),
-        '-c',  # closed ends
-        '-f', 'gff',  # GFF output
-        '-o', str(gff_path)  # prodigal output
-    ]
-
+def predict_orfs_py(contigs, record, proteins_path, training_info=None):
+    """Predict open reading frames with Pyrodigal."""
     genome_size = sum([v['length'] for k, v in contigs.items()])
-    if(cfg.metagenome or (cfg.characterize and genome_size < 50000)):
-        cmd.append('-p')
-        cmd.append('meta')
-        log.info('ORFs: execute prodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
+    pyrodigal_metamode = (cfg.module == 'metagenomic') or (cfg.characterize and genome_size < 50000) or (20000 > genome_size)
+    log.info('ORFs: execute pyrodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.module)
+    orf_finder = pyrodigal.OrfFinder(training_info, meta=pyrodigal_metamode, closed=True, mask=True)
+    genes = orf_finder.find_genes(str(record.seq))
+    with open(str(proteins_path), "a") as dst:
+        genes.write_translations(dst, sequence_id=record.name)
+    for i, gene in enumerate(genes):
+            orf_id = i+1
+            strand_match = re.search(r"strand=([-+])", str(gene))
+            orf = {
+                'start': gene.begin,
+                'end': gene.end,
+                'strand': strand_match.group(1),
+                'id': orf_id
+            }
+            contig = contigs.get(record.name, None)    
+            if(contig is not None):
+                contig['orfs'][orf_id] = orf
+                log.info(
+                    'ORFs: found! contig=%s, start=%d, end=%d, strand=%s',
+                    contig['id'], orf['start'], orf['end'], orf['strand']
+                )
+    return 
 
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'ORFs failed! prodigal-error-code=%d', proc.returncode
-        )
-        log.debug(
-            'ORFs: cmd=%s stdout=\'%s\', stderr=\'%s\'',
-            cmd, proc.stdout, proc.stderr
-        )
-        return None
+def construct_hit_dict(hits, hit, orf, include_hmm_id=False):
+    hit = {
+        'type': hits.query_name.decode(),
+        'start': int(orf['start']),
+        'end': int(orf['end']),
+        'strand': orf['strand'],
+        'bitscore': hit.score,
+        'evalue': hit.evalue
+    }
+    if include_hmm_id:
+        hit['hmm-id'] = hit.hmm_name.decode()
+    return hit
+    
 
-    # parse orfs
-    with gff_path.open() as fh:
-        for line in fh:
-            if(line[0] != '#'):
-                cols = line.split('\t')
-                orf_id = cols[8].split(';')[0].split('=')[1].split('_')[1]
-                orf = {
-                    'start': int(cols[3]),
-                    'end': int(cols[4]),
-                    'strand': cols[6],
-                    'id': orf_id
-                }
-                contig = contigs.get(cols[0], None)
-                if(contig is not None):
-                    contig['orfs'][orf_id] = orf
-    return proteins_path
+def search_amr_genes_py(contigs, filteredProteinsPath):
+    """Search for AMR genes."""
 
-
-def search_replication_genes(contigs, filteredProteinsPath):
-    """Search for replication genes, e.g. repA by custom HMMs."""
-
-    tmp_output_path = cfg.tmp_path.joinpath('rep.hmm.out')
-    cmd = [
-        'hmmsearch',
-        '--noali',
-        '--cpu', '1',
-        '-E', '1E-100',
-        '--tblout', str(tmp_output_path),
-        str(cfg.db_path.joinpath('replication')),
-        str(filteredProteinsPath)
-    ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'rep genes failed! hmmsearch-error-code=%d', proc.returncode
-        )
-        log.debug(
-            'rep genes: cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            cmd, proc.stdout, proc.stderr
-        )
-        return
-
-    hits = set()
-    with tmp_output_path.open() as fh:
-        for line in fh:
-            if(line[0] != '#'):
-                cols = line.rstrip().split()
-                if(cols[0] not in hits):
-                    tmp = cols[0].rsplit('_', 1)
+    hmm_profile_path = str(cfg.db_path.joinpath('ncbifam-amr'))
+    sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
+    with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
+        proteins = seq_file.read_block()
+    with pyhmmer.plan7.HMMFile(hmm_profile_path) as hmm_file:
+        for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, bit_cutoffs="trusted"):
+            for hit in hits:
+                if hit.included:
+                    contig_id = hit.name.decode()
+                    tmp = contig_id.rsplit('_', 1)
                     contig_id = tmp[0]
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][tmp[1]]
-                    hit = {
-                        'type': cols[2],
-                        'start': int(orf['start']),
-                        'end': int(orf['end']),
-                        'strand': orf['strand'],
-                        'bitscore': float(cols[5]),
-                        'evalue': float(cols[4])
-                    }
-                    hits.add(cols[0])
+                    orf = contig['orfs'][int(tmp[1])]
+                    hit = construct_hit_dict(hits, hit, orf, include_hmm_id= True)
+                    contig['amr_hits'].append(hit)
+                    log.info(
+                        'AMRs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                        contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
+                    )
+    log.info('AMRs: contig=%s, # AMRs=%s', contig['id'], len(contig['amr_hits']))
+    return
+
+
+def search_replication_genes_py(contigs, filteredProteinsPath):
+    """Search for replication genes."""
+
+    hmm_profile_path = str(cfg.db_path.joinpath('replication'))
+    sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
+    with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
+        proteins = seq_file.read_block()
+    with pyhmmer.plan7.HMMFile(hmm_profile_path) as hmm_file:
+        for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-100):
+            for hit in hits:
+                if hit.included:
+                    contig_id = hit.name.decode()
+                    tmp = contig_id.rsplit('_', 1)
+                    contig_id = tmp[0]
+                    contig = contigs[contig_id]
+                    orf = contig['orfs'][int(tmp[1])]
+                    hit = construct_hit_dict(hits, hit, orf)
                     contig['replication_hits'].append(hit)
                     log.info(
                         'rep genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
                         contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                     )
-    log.info('rep genes: contig=%s, # rep-genes=%s', contig['id'], len(contig['replication_hits']))
+                    check_plasmid_length(contig, 'replication_hits')
+    log.info('rep genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['replication_hits']))
     return
 
+def search_mobilization_genes_py(contigs, filteredProteinsPath):
+    """Search for mobilization genes."""
 
-def search_mobilization_genes(contigs, filteredProteinsPath):
-    """Search for mobilization genes, e.g. mob by custom HMMs."""
-
-    tmp_output_path = cfg.tmp_path.joinpath('mob.hmm.out')
-    cmd = [
-        'hmmsearch',
-        '--noali',
-        '--cpu', '1',
-        '-E', '1E-10',
-        '--tblout', str(tmp_output_path),
-        str(cfg.db_path.joinpath('mobilization')),
-        str(filteredProteinsPath)
-    ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'mob genes failed! hmmsearch-error-code=%d', proc.returncode
-        )
-        log.debug(
-            'mob genes: cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            cmd, proc.stdout, proc.stderr
-        )
-        return
-
-    hits = set()
-    with tmp_output_path.open() as fh:
-        for line in fh:
-            if(line[0] != '#'):
-                cols = line.rstrip().split()
-                if(cols[0] not in hits):
-                    tmp = cols[0].rsplit('_', 1)
+    hmm_profile_path = str(cfg.db_path.joinpath('mobilization'))
+    sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
+    with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
+        proteins = seq_file.read_block()
+    with pyhmmer.plan7.HMMFile(hmm_profile_path) as hmm_file:
+        for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-10):
+            for hit in hits:
+                if hit.included:
+                    contig_id = hit.name.decode()
+                    tmp = contig_id.rsplit('_', 1)
                     contig_id = tmp[0]
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][tmp[1]]
-                    hit = {
-                        'type': cols[2],
-                        'start': int(orf['start']),
-                        'end': int(orf['end']),
-                        'strand': orf['strand'],
-                        'bitscore': float(cols[5]),
-                        'evalue': float(cols[4])
-                    }
-                    hits.add(cols[0])
+                    orf = contig['orfs'][int(tmp[1])]
+                    hit = construct_hit_dict(hits, hit, orf)
                     contig['mobilization_hits'].append(hit)
                     log.info(
                         ' mob genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
                         contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                     )
+                    check_plasmid_length(contig, 'mobilization_hits')
     log.info('mob genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['mobilization_hits']))
     return
 
 
-def search_conjugation_genes(contigs, filteredProteinsPath):
-    """Search for conjugation genes by custom HMMs."""
+def search_conjugation_genes_py(contigs, filteredProteinsPath):
+    """Search for conjugation genes."""
 
-    tmp_output_path = cfg.tmp_path.joinpath('conj.hmm.out')
-    cmd = [
-        'hmmsearch',
-        '--noali',
-        '--cpu', '1',
-        '-E', '1E-100',
-        '--tblout', str(tmp_output_path),
-        str(cfg.db_path.joinpath('conjugation')),
-        str(filteredProteinsPath)
-    ]
-    proc = sp.run(
-        cmd,
-        cwd=str(cfg.tmp_path),
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-        universal_newlines=True
-    )
-    if(proc.returncode != 0):
-        log.warning(
-            'conj genes failed! hmmsearch-error-code=%d', proc.returncode
-        )
-        log.debug(
-            'conj genes: cmd=%s, stdout=\'%s\', stderr=\'%s\'',
-            cmd, proc.stdout, proc.stderr
-        )
-        return
-
-    hits = set()
-    with tmp_output_path.open() as fh:
-        for line in fh:
-            if(line[0] != '#'):
-                cols = line.rstrip().split()
-                if(cols[0] not in hits):
-                    tmp = cols[0].rsplit('_', 1)
+    hmm_profile_path = str(cfg.db_path.joinpath('conjugation'))
+    sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
+    with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
+        proteins = seq_file.read_block()
+    with pyhmmer.plan7.HMMFile(hmm_profile_path) as hmm_file:
+        for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-100):
+            for hit in hits:
+                if hit.included:
+                    contig_id = hit.name.decode()
+                    tmp = contig_id.rsplit('_', 1)
                     contig_id = tmp[0]
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][tmp[1]]
-                    hit = {
-                        'type': cols[2],
-                        'start': int(orf['start']),
-                        'end': int(orf['end']),
-                        'strand': orf['strand'],
-                        'bitscore': float(cols[5]),
-                        'evalue': float(cols[4])
-                    }
-                    hits.add(cols[0])
+                    orf = contig['orfs'][int(tmp[1])]
+                    hit = construct_hit_dict(hits, hit, orf)
                     contig['conjugation_hits'].append(hit)
                     log.info(
                         'conj genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
                         contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                     )
-    log.info('conj genes: contig=%s, # conj-genes=%s', contig['id'], len(contig['conjugation_hits']))
+    log.info('conj genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['conjugation_hits']))
     return
