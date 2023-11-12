@@ -163,7 +163,6 @@ def main():
         cores=20,  scheduler="greedy" # keepgoing=True
     )
     
-    #contig_ids = [contig['id'] for contig in contigs]
     
     orf_files = os.listdir('tmp/orf')
     for file in orf_files:
@@ -185,8 +184,12 @@ def main():
                     #if contig_id in contig_ids:  
                     contig_id = match.group(1)
                     contigs[contig_id]['protein_score']= float(match.group(2))
-                      
                     
+    for name_dict in [{'amr.txt':'amr_hits'}, {'rrnas.txt':'rrnas'}, {'orit.txt':'orit_hits'}, {'cir.txt':'is_circular'}, {'inc.txt':'inc_types'}, 
+            {'ref.txt':'plasmid_hits'}, {'mob.txt': 'mobilization_hits'}, {'rep.txt':'replication_hits'}, {'conj.txt':'conjugation_hits'}]:
+            pf.extract_function_info(contigs, list(name_dict.keys())[0], name_dict[list(name_dict.keys())[0]])
+                      
+    """                
     function_pattern = r"id: ([A-Z0-9]+) \{(.+)\}"
 
     with open(os.path.join('tmp/function', 'amr.txt'),"r") as fh:
@@ -203,7 +206,6 @@ def main():
         for line in fh:
             match = re.match(function_pattern, line)
             if match:
-                #if contig_id in contig_ids:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -212,19 +214,17 @@ def main():
     with open(os.path.join('tmp/function', 'orit.txt'),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
-            if match:
-                #if contig_id in contig_ids:  
+            if match:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
                 contigs[contig_id]['orit_hits'].append(dict_value)
     
 
-    with open(os.path.join('tmp/function', 'cir.txt'),"r") as fh:  ##check
+    with open(os.path.join('tmp/function', 'cir.txt'),"r") as fh: 
         for line in fh:
             match = re.match(function_pattern, line)
             if match:
-                #if contig_id in contig_ids:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -234,8 +234,7 @@ def main():
     with open(os.path.join('tmp/function', 'inc.txt'),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
-            if match:
-                #if contig_id in contig_ids:  
+            if match:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -245,8 +244,7 @@ def main():
     with open(os.path.join('tmp/function', 'ref.txt'),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
-            if match:
-                #if contig_id in contig_ids:  
+            if match:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -256,7 +254,6 @@ def main():
         for line in fh:
             match = re.match(function_pattern, line)
             if match:
-                #if contig_id in contig_ids:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -266,8 +263,7 @@ def main():
     with open(os.path.join('tmp/function', 'rep.txt'),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
-            if match:
-                #if contig_id in contig_ids:  
+            if match:  
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
@@ -276,12 +272,13 @@ def main():
     with open(os.path.join('tmp/function', 'conj.txt'),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
-            if match:
-                #if contig_id in contig_ids:  
+            if match: 
                 contig_id = match.group(1)
                 dict_string = "{" + match.group(2) + "}"
                 dict_value = ast.literal_eval(dict_string)
+                print(dict_string)
                 contigs[contig_id]['conjugation_hits'].append(dict_value)
+    """
                     
     filtered_contigs = None
     if(args.characterize):  # skip protein score based filtering
@@ -292,6 +289,24 @@ def main():
         filtered_contigs = {k: v for (k, v) in contigs.items() if v['protein_score'] >= pc.RDS_SPECIFICITY_THRESHOLD}
     else:
         filtered_contigs = {k: v for (k, v) in contigs.items() if pf.filter_contig_meta(v)}
+        
+        
+    # lookup AMR genes
+    amr_genes = {}
+    with cfg.db_path.joinpath('ncbifam-amr.tsv').open() as fh:
+        for line in fh:
+            cols = line.split('\t')
+            amr_genes[cols[0]] = {
+                'gene': cols[4],
+                'product': cols[8]
+            }
+    
+    for id, contig in contigs.items():
+        for hit in contig['amr_hits']:
+            amr_gene = amr_genes[hit['hmm-id']]
+            hit['gene'] = amr_gene['gene']
+            hit['product'] = amr_gene['product']
+
 
     # print results to tsv file and STDOUT
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.tsv')
