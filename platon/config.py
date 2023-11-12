@@ -21,7 +21,7 @@ output_path = None
 # workflow configuration
 mode = None
 characterize = None
-metagenome = None
+module = None
 
 
 def setup(args):
@@ -32,6 +32,7 @@ def setup(args):
     
     threads = args.threads
     log.info('threads=%i', threads)
+    #print(args.verbose)
     verbose = args.verbose
     log.info('verbose=%s', verbose)
 
@@ -87,15 +88,18 @@ def setup(args):
         sys.exit(f'ERROR: genome file ({args.genome}) not valid!')
     log.info('genome-path=%s', genome_path)
 
+
     tmp_path = Path(tempfile.mkdtemp())
     log.info('tmp-path=%s', tmp_path)
     log.info('output-path=%s', output_path)
 
+
     # workflow configurations
-    global mode, characterize, metagenome
+    global mode, characterize, module
+
     mode = args.mode
     log.info('mode=%s', mode)
     characterize = args.characterize
     log.info('characterize=%s', characterize)
-    metagenome = args.meta
-    log.info('metagenome=%s', metagenome)
+    module = args.module
+    log.info('metagenome=%s', module)
