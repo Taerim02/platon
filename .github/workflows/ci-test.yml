@@ -1,0 +1,50 @@
+name: CI (Conda/PyTest)
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+  pull_request:
+    types:
+      - opened
+    paths-ignore:
+      - 'README.md'
+jobs:
+  build:
+    name: test (${{ matrix.os }}, ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest']
+        python-version: ['3.11']
+    steps:
+    - uses: actions/checkout@v2
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: 'latest'
+        environment-name: 'platon'
+        environment-file: 'environment.yml'
+        create-args: python=${{ matrix.python-version }}
+        condarc: |
+          channels:
+            - conda-forge
+            - bioconda
+        init-shell: bash
+        cache-environment: true
+        cache-downloads: true
+        post-cleanup: 'all'
+    - name: Install PyTest
+      run: micromamba install pytest
+      shell: bash -l {0}
+    - name: Mamba info
+      run: |
+        micromamba info
+        micromamba list
+        printenv | sort
+      shell: bash -l {0}
+    - name: Run PyTest
+      run: pytest
+      shell: bash -l {0}
