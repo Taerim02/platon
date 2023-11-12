@@ -10,6 +10,7 @@ import pandas as pd
 
 import os 
 import pyfastx
+import ast
 
 log = logging.getLogger('functions')
 
@@ -515,7 +516,9 @@ def predict_orfs_py(contigs, record, proteins_path, training_info=None):
                 )
     return 
 
-def construct_hit_dict(hits, hit, orf, include_hmm_id=False):
+def construct_hit_dict(hits, hit, orf, inclued_hmm_id = False):
+    if inclued_hmm_id:
+      hmm_id = hit.best_domain.alignment.hmm_accession.decode()
     hit = {
         'type': hits.query_name.decode(),
         'start': int(orf['start']),
@@ -524,8 +527,8 @@ def construct_hit_dict(hits, hit, orf, include_hmm_id=False):
         'bitscore': hit.score,
         'evalue': hit.evalue
     }
-    if include_hmm_id:
-        hit['hmm-id'] = hit.hmm_name.decode()
+    if inclued_hmm_id:
+        hit['hmm-id'] = hmm_id
     return hit
     
 
@@ -540,12 +543,10 @@ def search_amr_genes_py(contigs, filteredProteinsPath):
         for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, bit_cutoffs="trusted"):
             for hit in hits:
                 if hit.included:
-                    contig_id = hit.name.decode()
-                    tmp = contig_id.rsplit('_', 1)
-                    contig_id = tmp[0]
+                    contig_id, orf_id = hit.name.decode().rsplit('_', 1)
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][int(tmp[1])]
-                    hit = construct_hit_dict(hits, hit, orf, include_hmm_id= True)
+                    orf = contig['orfs'][int(orf_id)]
+                    hit = construct_hit_dict(hits, hit, orf, inclued_hmm_id = True)
                     contig['amr_hits'].append(hit)
                     log.info(
                         'AMRs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
@@ -566,11 +567,9 @@ def search_replication_genes_py(contigs, filteredProteinsPath):
         for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-100):
             for hit in hits:
                 if hit.included:
-                    contig_id = hit.name.decode()
-                    tmp = contig_id.rsplit('_', 1)
-                    contig_id = tmp[0]
+                    contig_id, orf_id = hit.name.decode().rsplit('_', 1)
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][int(tmp[1])]
+                    orf = contig['orfs'][int(orf_id)]
                     hit = construct_hit_dict(hits, hit, orf)
                     contig['replication_hits'].append(hit)
                     log.info(
@@ -592,11 +591,9 @@ def search_mobilization_genes_py(contigs, filteredProteinsPath):
         for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-10):
             for hit in hits:
                 if hit.included:
-                    contig_id = hit.name.decode()
-                    tmp = contig_id.rsplit('_', 1)
-                    contig_id = tmp[0]
+                    contig_id, orf_id = hit.name.decode().rsplit('_', 1)
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][int(tmp[1])]
+                    orf = contig['orfs'][int(orf_id)]
                     hit = construct_hit_dict(hits, hit, orf)
                     contig['mobilization_hits'].append(hit)
                     log.info(
@@ -619,11 +616,9 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
         for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-100):
             for hit in hits:
                 if hit.included:
-                    contig_id = hit.name.decode()
-                    tmp = contig_id.rsplit('_', 1)
-                    contig_id = tmp[0]
+                    contig_id, orf_id = hit.name.decode().rsplit('_', 1)
                     contig = contigs[contig_id]
-                    orf = contig['orfs'][int(tmp[1])]
+                    orf = contig['orfs'][int(orf_id)]
                     hit = construct_hit_dict(hits, hit, orf)
                     contig['conjugation_hits'].append(hit)
                     log.info(
@@ -632,3 +627,16 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
                     )
     log.info('conj genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['conjugation_hits']))
     return
+    
+def extract_function_info(contigs:dict, txt_file:str, index:str):
+    
+    function_pattern = r"id: ([A-Z0-9]+) \{(.+)\}"
+
+    with open(os.path.join('tmp/function', txt_file),"r") as fh:
+        for line in fh:
+            match = re.match(function_pattern, line)
+            if match:  
+                contig_id = match.group(1)
+                dict_string = "{" + match.group(2) + "}"
+                dict_value = ast.literal_eval(dict_string)
+                contigs[contig_id][index].append(dict_value)
