@@ -330,6 +330,7 @@ def main():
                 'gene': cols[4],
                 'product': cols[8]
             }
+    
     for id, contig in scored_contigs.items():
         for hit in contig['amr_hits']:
             amr_gene = amr_genes[hit['hmm-id']]
