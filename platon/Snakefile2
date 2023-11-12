@@ -1,0 +1,364 @@
+import pandas as pd
+import os 
+import glob
+import re
+import db as db
+import config as cfg
+import functions as pf
+import pyfastx
+
+############################
+
+output_directory = cfg.output_path
+main_fasta_file = cfg.genome_path
+file_name = pf.get_base_name(str(main_fasta_file)) 
+
+ncbi_amr = cfg.db_path.joinpath('ncbifam-amr')
+ncbi_rep = cfg.db_path.joinpath('replication')
+ncbi_mob = cfg.db_path.joinpath('mobilization')
+ncbi_conj = cfg.db_path.joinpath('conjugation')
+
+if not os.path.exists(f'tmp/function'):
+    os.mkdir(f'tmp/function')
+
+
+for name in ["amr", "rep", "mob", "conj", "cir", "rrnas", "orit", "inc", "ref"]:
+    if not os.path.exists(f'tmp/function/{name}'):
+        os.mkdir(f'tmp/function/{name}')
+
+# Define the regular expression pattern
+pattern_faa = r'(.+)_(\d+)_filtered.faa$'
+pattern_fasta = r'(.+)_(\d+)_filtered.fasta$'
+
+#log_file =  glob.glob('tmp/*.log')
+all_fa_file_paths = glob.glob('tmp/*_filtered.faa')
+all_fasta_file_paths = glob.glob('tmp/*_filtered.fasta')
+
+# Store the extracted file_name part
+faa_chunk_list = []
+faa_files = []
+for file_path in all_fa_file_paths:
+    # Extract both the file name part and the number from the file path
+    match = re.match(pattern_faa, os.path.basename(file_path))   
+    if match:
+        faa_files.append(file_path)
+        number = int(match.group(2))
+        faa_chunk_list.append(number)
+print(faa_chunk_list)
+print(faa_files)
+
+fasta_chunk_list = []
+fasta_files = []
+
+
+for file_path in all_fasta_file_paths:
+    # Extract both the file name part and the number from the file path
+    match = re.match(pattern_fasta, os.path.basename(file_path))   
+    if match:
+        fasta_files.append(file_path)
+        number = int(match.group(2))
+        fasta_chunk_list.append(number)
+        
+print(fasta_chunk_list)
+print(fasta_files)
+
+
+current_directory = os.getcwd()
+
+
+def get_inputs(wildcards):
+    faa = ["amr", "rep", "mob", "conj"]  # List of possible values for the txt wildcard
+    fasta = ["cir", "rrnas", "orit", "inc", "ref"]
+    files = []
+    for t in faa:
+        files.extend(expand("tmp/function/{txt}/{file_name}_{i}_{txt}.txt", file_name=file_name, i=faa_chunk_list, txt=t))
+    for t in fasta:
+        files.extend(expand("tmp/function/{txt}/{file_name}_{i}_{txt}.txt", file_name=file_name, i=fasta_chunk_list, txt=t))
+    return files
+
+
+
+def get_blast_word_size(contig_name):
+    config_file = f"tmp/contigs/{contig_name}.fasta"
+    fasta = pyfastx.Fasta(config_file)
+    record = fasta[0]
+    length = len(record.seq)
+    blast_word_size = int(length / 1000)
+    if(blast_word_size < 11):
+        blast_word_size = 11
+    return blast_word_size
+
+
+
+all_contigs = glob.glob(os.path.join(current_directory, 'tmp/contigs/*.fasta'))
+
+contig_names = []
+for contig_file in all_contigs:
+    # Extract both the file name part and the number from the file path
+    match = re.match(r'(.+)\.fasta$', os.path.basename(contig_file))   
+    if match:
+        contig_names.append(match.group(1))
+
+faa = ["amr", "rep", "mob", "conj"]  # List of possible values for the txt wildcard
+fasta = ["cir", "rrnas", "orit", "inc", "ref"]
+
+
+
+
+
+rule all:
+    input:
+        'tmp/function/amr.txt', 'tmp/function/rep.txt' , 'tmp/function/mob.txt' ,'tmp/function/conj.txt' ,'tmp/function/ref.txt' ,
+        'tmp/function/cir.txt' ,'tmp/function/rrnas.txt' ,'tmp/function/inc.txt' ,'tmp/function/orit.txt' ,
+
+
+
+rule search_amr_genes:
+    input:
+        faa_file = 'tmp/{file_name}_{i}_filtered.faa',
+    output:
+        amr = 'tmp/function/amr/{file_name}_{i}_amr.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    params:
+        db_path = cfg.db_path.joinpath('ncbifam-amr'),
+        name = file_name
+    shell:
+        'python amr.py --name {params.name} --db_path {params.db_path} --output {output.amr} {input.faa_file}'
+
+
+rule search_replication_genes: 
+    input:
+        faa_file = 'tmp/{file_name}_{i}_filtered.faa',
+    output:
+        rep = 'tmp/function/rep/{file_name}_{i}_rep.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    params:
+        db_path = cfg.db_path.joinpath('replication'),
+        name = file_name
+    shell:
+        'python rep.py --name {params.name} --db_path {params.db_path} --output {output.rep} {input.faa_file}'
+
+
+rule search_mobilization_genes:
+    input:
+        faa_file = 'tmp/{file_name}_{i}_filtered.faa',
+    output:
+        mob = 'tmp/function/mob/{file_name}_{i}_mob.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    params:
+        db_path = cfg.db_path.joinpath('mobilization'),
+        name = file_name
+    shell:
+        'python mob.py --name {params.name} --db_path {params.db_path} --output {output.mob} {input.faa_file}'
+
+
+rule search_conjugation_genes:
+    input:
+        faa_file = 'tmp/{file_name}_{i}_filtered.faa',
+    output:
+        conj = 'tmp/function/conj/{file_name}_{i}_conj.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    params:
+        db_path = str(cfg.db_path.joinpath('conjugation')),
+        name = file_name
+    shell:
+        'python conj.py --name {params.name} --db_path {params.db_path} --output {output.conj} {input.faa_file}'
+
+
+rule test_circularity:
+    input:
+        fasta_file = "tmp/{file_name}_{i}_filtered.fasta"
+    output:
+        cir = 'tmp/function/cir/{file_name}_{i}_cir.txt' 
+    params:
+        tmpdir = str(cfg.tmp_path),
+        name = file_name
+    shell: 
+        'python test_circularity.py --name {params.name} --tmpdir {params.tmpdir} --verbose --output {output.cir} {input.fasta_file}'
+
+
+
+rule search_rrnas:
+    input:
+        fasta_file = "tmp/{file_name}_{i}_filtered.fasta"
+    output:
+        rrnas = 'tmp/function/rrnas/{file_name}_{i}_rrnas.txt'
+    params:
+        name = file_name,
+        db_path = str(cfg.db_path.joinpath('rRNA')),
+        rrnas = "tmp/rrnas/{file_name}_{i}.rrnas.blast.out",
+    shell: 
+        r"""
+        cmscan \
+        --noali \
+        --cut_tc \
+        --cpu 1 \
+        --tblout {params.rrnas} \
+        {params.db_path} \
+        {input.fasta_file} > tmp/rrnas/output.txt
+        
+        
+        python rrnas_result.py --name {params.name} --output {output.rrnas} {input.fasta_file} {params.rrnas} 
+        """
+        
+
+rule search_inc_type:
+    input:
+        contig_file = "tmp/{file_name}_{i}_filtered.fasta"
+    output:
+        inc = 'tmp/function/inc/{file_name}_{i}_inc.txt'
+    params:
+        name = file_name,
+        db_path = str(cfg.db_path.joinpath('inc-types.fasta')),
+        inc = "tmp/inc/{file_name}_{i}.inc.blast.out",
+    shell:
+        r"""
+        blastn \
+        -query {params.db_path} \
+        -subject {input.contig_file} \
+        -num_threads 1 \
+        -culling_limit 1 \
+        -perc_identity 90 \
+        -outfmt '6 qseqid sseqid sstart send sstrand pident qcovs bitscore' \
+        -out {params.inc}
+
+        python inc_result.py --name {params.name} --output {output.inc} {input.contig_file} {params.inc}
+        """
+
+
+rule search_orit_sequences:
+    input:
+        contig_file = "tmp/{file_name}_{i}_filtered.fasta"
+    output:
+        orit = 'tmp/function/orit/{file_name}_{i}_orit.txt'
+    params:
+        name = file_name,
+        db_path = str(cfg.db_path.joinpath('orit')),
+        orit = "tmp/orit/{file_name}_{i}.orit.blast.out",
+    shell:
+        r"""
+        blastn \
+        -query {input.contig_file} \
+        -db {params.db_path} \
+        -num_threads 1 \
+        -culling_limit 1 \
+        -perc_identity 90 \
+        -evalue 1E-5 \
+        -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
+        -out {params.orit}
+
+        python orit_result.py --name {params.name} --output {output.orit} {input.contig_file} {params.orit}
+        """
+
+
+rule search_reference_plasmids:  ## ref should put cmd command directly
+    input:
+        contig_file = "tmp/{file_name}_{i}_filtered.fasta"
+    output:
+        ref = 'tmp/function/ref/{file_name}_{i}_ref.txt'
+        
+    params:
+        db_path = str(cfg.db_path.joinpath('refseq-plasmids')),
+        name = file_name,
+        ref = "tmp/ref/{file_name}_{i}.refplas.blast.out",  #{params.word_size}
+    shell:
+        r"""
+        blastn \
+        -query {input.contig_file} \
+        -db {params.db_path} \
+        -num_threads 1 \
+        -culling_limit 1 \
+        -perc_identity 80 \
+        -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
+        -out {params.ref}
+
+        python ref_result.py --name {params.name} --output {output.ref} {input.contig_file} {params.ref}
+        """
+
+rule amr_files_integration:
+    input:
+       expand("tmp/function/amr/{file_name}_{i}_amr.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/amr.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """
+rule mob_files_integration:
+    input:
+       expand("tmp/function/mob/{file_name}_{i}_mob.txt", file_name=file_name, i=faa_chunk_list)
+    output:
+        'tmp/function/mob.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """
+rule conj_files_integration:
+    input:
+       expand("tmp/function/conj/{file_name}_{i}_conj.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/conj.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """
+rule cir_files_integration:
+    input:
+       expand("tmp/function/cir/{file_name}_{i}_cir.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/cir.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """
+rule rrnas_files_integration:
+    input:
+       expand("tmp/function/rrnas/{file_name}_{i}_rrnas.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/rrnas.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """        
+rule orit_files_integration:
+    input:
+       expand("tmp/function/orit/{file_name}_{i}_orit.txt", file_name=file_name, i=fasta_chunk_list)   # maybe put all files in a folder?
+    output:
+        'tmp/function/orit.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """        
+rule ref_files_integration:
+    input:
+       expand("tmp/function/ref/{file_name}_{i}_ref.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/ref.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """        
+rule rep_files_integration:
+    input:
+       expand("tmp/function/rep/{file_name}_{i}_rep.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/rep.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """        
+    
+rule inc_files_integration:
+    input:
+       expand("tmp/function/inc/{file_name}_{i}_inc.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+    output:
+        'tmp/function/inc.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+    shell:
+        """
+        cat {input} > {output}
+        rm {input}
+        """                            
