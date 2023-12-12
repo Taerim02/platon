@@ -1,0 +1,175 @@
+import functools as ft
+import os
+import re
+import sys
+import pyfastx
+import argparse
+import config as cfg
+import constants as pc
+import pandas as pd
+import json
+
+parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") ## output -> protein_score unneccessary 
+parser.add_argument("fasta_file", help="Input FASTA file")
+parser.add_argument("tsv_file", help="TSV FASTA file")
+parser.add_argument("orf_file", help="orf_file")
+parser.add_argument("--mps", help="mps path")
+parser.add_argument("--name", help="Output directory")
+parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
+parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
+parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+#python rds_filter.py bacteroides_coagulans_gca.cdna.all_1.py bacteroides_coagulans_gca.cdna.all_1.fasta tmp/bacteroides_coagulans_gca.cdna.all_diamond_1.tsv
+args = parser.parse_args()
+
+def get_base_name(file_name):
+    return os.path.splitext(os.path.basename(file_name))[0]
+file_name = get_base_name(str(args.fasta_file))
+#print(file_name)
+pattern = r'_(\d+)\.fasta'
+match = re.search(pattern, args.fasta_file)
+match = match.group(1)
+
+log_file = os.path.join(f'{args.name}.log')
+protein_score_file = os.path.join(args.output, f'{file_name}_protein_score.txt')
+
+
+#print(match)
+contigs = {}
+raw_contigs = []
+try:
+    for record in pyfastx.Fasta(str(args.fasta_file)):
+        length = len(record.seq)
+        contig = {
+            'id': record.name,
+            'length': length,
+            'sequence': str(record.seq),
+            'orfs': {},
+        }
+        raw_contigs.append(contig)
+        contigs[record.name] = contig
+except Exception as e:
+    sys.exit(f'ERROR: {str(e)}')
+
+with open(args.orf_file, "r") as orf_file:
+    orf_lines = orf_file.readlines()
+
+for id, contig in contigs.items():
+    for line in orf_lines:
+        try:
+            orf_dict = json.loads(line)
+            if orf_dict["contig"] == id:
+                orf = {
+                    'start': int(orf_dict["start"]),
+                    'end': int(orf_dict["end"]),
+                    'strand': orf_dict["strand"],
+                    'id': int(orf_dict["id"])
+                }
+                contig['orfs'][orf['id']] = orf
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+                
+proteins_identified = 0
+
+with open(args.tsv_file, "r") as fh:
+    for line in fh:
+        cols = line.split('\t')
+        locus = cols[0].rpartition('_')
+        contig_id = locus[0]
+        orf_id = locus[2]
+        if((float(cols[2]) >= pc.MIN_PROTEIN_IDENTITY) and (contig_id in contigs)):
+            contig = contigs[contig_id]
+            orf = contig['orfs'][int(orf_id)]
+            orf['protein_id'] = cols[1]
+            proteins_identified += 1
+with open(log_file, "a") as fh: 
+    fh.write('MPS detection: # MPS=%d\n' % proteins_identified)
+if(args.verbose):
+    print(f'\tfound {proteins_identified} MPS')
+
+
+# parse protein score file
+if(args.verbose):
+    print('compute replicon distribution scores (RDS)...')
+
+marker_proteins = {}
+
+with open(args.mps, "r") as fh:
+    for line in fh:
+        cols = line.split('\t')
+        marker_proteins[cols[0]] = {
+            'id': cols[0],
+            'product': cols[1],
+            'length': cols[2],
+            'score': float(cols[3]),
+        }
+        
+if not os.path.exists('tmp/protein_score'):
+    os.mkdir('tmp/protein_score')
+    
+
+protein_score = os.path.join(args.output, f'protein_score/{file_name}_protein_score.txt')
+
+# calculate protein score per contig
+for contig in contigs.values():
+    score_sum = 0.0
+    for orf in contig['orfs'].values():
+        if(('protein_id' in orf) and (orf['protein_id'] in marker_proteins)):
+            marker_protein = marker_proteins[orf['protein_id']]
+            score = marker_protein['score']
+            orf['score'] = score
+            orf['product'] = marker_protein['product']
+            score_sum += score
+    contig['protein_score'] = score_sum / len(contig['orfs']) if len(contig['orfs']) > 0 else 0
+    with open(log_file, "a") as fh:
+        fh.write(
+            'contig RDS: contig=%s, RDS=%f, score-sum=%f, ORFs=%d\n' % 
+            (contig['id'], contig['protein_score'], score_sum, len(contig['orfs']))
+        )
+    with open(protein_score, "a") as fh:
+        fh.write(
+            'contig RDS: contig=%s, RDS=%f\n' % 
+            (contig['id'], contig['protein_score'])
+        )
+    
+
+# filter contigs based on conservative protein score threshold
+# RDS_SENSITIVITY_THRESHOLD and execute per contig analyses in parallel
+scored_contigs = None
+if(args.characterize):
+    scored_contigs = contigs
+else:
+    if(args.verbose):
+        print(f'apply RDS sensitivity threshold (SNT={pc.RDS_SENSITIVITY_THRESHOLD:2.1f}) filter...')
+    scored_contigs = {k: v for (k, v) in contigs.items() if v['protein_score'] >= pc.RDS_SENSITIVITY_THRESHOLD}
+    no_excluded_contigs = len(contigs) - len(scored_contigs)
+    with open(log_file, "a") as fh: 
+        fh.write('RDS SNT filter: # discarded contigs=%d, # remaining contigs=%d' % (no_excluded_contigs, len(scored_contigs)))
+    if(args.verbose):
+        print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
+
+
+proteins_path = os.path.join(args.output, f'protein/{file_name}_proteins.faa')
+
+# extract proteins from potential plasmid contigs for subsequent analyses
+full_filtered_proteins_path = os.path.join(args.output, f"{args.name}_filtered.faa")
+
+for record in pyfastx.Fasta(str(proteins_path)):
+    orf_name = str(record.name).split()[0]
+    contig_id = orf_name.rsplit('_', 1)[0]
+    if contig_id in scored_contigs:  # Check if contig_id is in the list of selected names
+        with open(full_filtered_proteins_path, "a") as ffh:
+            ffh.write(f'>{orf_name}\n')
+            ffh.write(f'{record.seq}\n')
+
+
+# write contig sequences to fasta files for subsequent parallel analyses
+full_filtered_contig_path = os.path.join(args.output, f"{args.name}_filtered.fasta")
+
+for id, contig in scored_contigs.items():
+    with open(full_filtered_contig_path, "a") as ffh:
+        ffh.write(f">{contig['id']}\n")
+        ffh.write(f"{contig['sequence']}\n")
+
+
+    
