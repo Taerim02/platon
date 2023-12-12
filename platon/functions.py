@@ -85,7 +85,7 @@ def contigs_into_chunks(contigs, contig_size):
         else:
             i += 1
             i_list.append(i)
-            contig_file_path = os.path.join(cfg.output_path, f'{name}_{i}.fasta')
+            contig_file_path = os.path.join('tmp/chunk', f'{name}_{i}.fasta')
             with open(contig_file_path, 'w') as contig_file:
                 for saved_contig in contigs_to_save:
                     contig_file.write(f">{saved_contig['contig_name']}\n")
@@ -96,7 +96,7 @@ def contigs_into_chunks(contigs, contig_size):
     # Handle the last batch of contigs
     if contigs_to_save:
         i += 1
-        contig_file_path = os.path.join(cfg.output_path, f'{name}_{i}.fasta')
+        contig_file_path = os.path.join('tmp/chunk', f'{name}_{i}.fasta')
         with open(contig_file_path, 'w') as contig_file:
             for saved_contig in contigs_to_save:
                 contig_file.write(f">{saved_contig['contig_name']}\n")
@@ -436,8 +436,8 @@ def filter_contig(contig):
         
         
 def filter_contig_meta(contig):
+    
     """Apply heuristic filters based on contig information."""
-
     # include all circular contigs
     if(contig['is_circular']):
         log.debug('filter: is circ! contig=%s', contig['id'])
@@ -469,10 +469,9 @@ def filter_contig_meta(contig):
         return True
 
     # include all contigs with mediocre protein scores but additional blast hit evidence without rRNAs
-    if(contig['protein_score'] >= pc.RDS_CONSERVATIVE_THRESHOLD
-            and len(contig['plasmid_hits']) > 0
-            and len(contig['rrnas']) == 0):
-
+    if(contig['protein_score'] >= pc.RDS_CONSERVATIVE_THRESHOLD 
+        and len(contig['plasmid_hits']) > 0
+        and len(contig['rrnas']) == 0):
         log.debug('filter: RDS > CT & plasmid hits & no rRNAs! contig=%s', contig['id'])
         return True
 
@@ -630,13 +629,17 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
     
 def extract_function_info(contigs:dict, txt_file:str, index:str):
     
-    function_pattern = r"id: ([A-Z0-9]+) \{(.+)\}"
-
+    function_pattern = r"id: ([a-zA-Z0-9_.]+) \{(.+)\}"
     with open(os.path.join('tmp/function', txt_file),"r") as fh:
         for line in fh:
             match = re.match(function_pattern, line)
             if match:  
                 contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id][index].append(dict_value)
+                
+                if index == 'is_circular':
+                    contigs[contig_id]['is_circular'] = True 
+                else:
+                    dict_string = "{" + match.group(2) + "}"
+                    dict_value = ast.literal_eval(dict_string)
+                    contigs[contig_id][index].append(dict_value)
+                    
