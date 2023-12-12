@@ -108,7 +108,7 @@ def main():
             elif(match_unicycler is not None):
                 contig['coverage'] = float(match_unicycler.group(1))
                 if(match_unicycler.group(2) is not None):
-                    contig['is_circular'] = True                  
+                    contig['is_circular'] = True                  # can be circularized
                     contig['type'] = True
             else:
                 contig['coverage'] = 0
@@ -347,7 +347,7 @@ def main():
             print('No potential plasmid contigs found!')
             print(pc.HEADER)
                   
-    #shutil.rmtree('tmp')
+    shutil.rmtree('tmp')
 
     # write comprehensive results to JSON file
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.json')
@@ -373,9 +373,8 @@ def main():
             if(contig['id'] in filtered_contigs):
                 fh.write(f">{contig['id']}\n{contig['sequence']}\n")
             
-        
-    
 
 if __name__ == '__main__':
     main()
-    
+    #profiler = cProfile.Profile()
+    #profiler.runctx("main()", globals(), locals())
