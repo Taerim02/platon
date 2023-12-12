@@ -18,13 +18,6 @@ ncbi_rep = cfg.db_path.joinpath('replication')
 ncbi_mob = cfg.db_path.joinpath('mobilization')
 ncbi_conj = cfg.db_path.joinpath('conjugation')
 
-if not os.path.exists(f'tmp/function'):
-    os.mkdir(f'tmp/function')
-
-
-for name in ["amr", "rep", "mob", "conj", "cir", "rrnas", "orit", "inc", "ref"]:
-    if not os.path.exists(f'tmp/function/{name}'):
-        os.mkdir(f'tmp/function/{name}')
 
 # Define the regular expression pattern
 pattern_faa = r'(.+)_(\d+)_filtered.faa$'
@@ -170,7 +163,7 @@ rule test_circularity:
         tmpdir = str(cfg.tmp_path),
         name = file_name
     shell: 
-        'python test_circularity.py --name {params.name} --tmpdir {params.tmpdir} --verbose --output {output.cir} {input.fasta_file}'
+        'python test_circularity.py --name {params.name} --tmpdir {params.tmpdir} --output {output.cir} {input.fasta_file}'
 
 
 
@@ -247,7 +240,7 @@ rule search_orit_sequences:
         """
 
 
-rule search_reference_plasmids:  ## ref should put cmd command directly
+rule search_reference_plasmids:  
     input:
         contig_file = "tmp/{file_name}_{i}_filtered.fasta"
     output:
@@ -273,92 +266,99 @@ rule search_reference_plasmids:  ## ref should put cmd command directly
 
 rule amr_files_integration:
     input:
-       expand("tmp/function/amr/{file_name}_{i}_amr.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/amr/{file_name}_{i}_amr.txt", file_name=file_name, i=faa_chunk_list)  
     output:
-        'tmp/function/amr.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/amr.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
         """
+        
 rule mob_files_integration:
     input:
        expand("tmp/function/mob/{file_name}_{i}_mob.txt", file_name=file_name, i=faa_chunk_list)
     output:
-        'tmp/function/mob.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/mob.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
+        
         """
+        
 rule conj_files_integration:
     input:
-       expand("tmp/function/conj/{file_name}_{i}_conj.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/conj/{file_name}_{i}_conj.txt", file_name=file_name, i=faa_chunk_list) 
     output:
-        'tmp/function/conj.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/conj.txt'  
     shell:
         """
         cat {input} > {output}
-        rm {input}
+    
         """
+        
 rule cir_files_integration:
     input:
-       expand("tmp/function/cir/{file_name}_{i}_cir.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/cir/{file_name}_{i}_cir.txt", file_name=file_name, i=fasta_chunk_list)  
     output:
-        'tmp/function/cir.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/cir.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
+  
         """
+        
 rule rrnas_files_integration:
     input:
-       expand("tmp/function/rrnas/{file_name}_{i}_rrnas.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/rrnas/{file_name}_{i}_rrnas.txt", file_name=file_name, i=fasta_chunk_list)  
     output:
-        'tmp/function/rrnas.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/rrnas.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
+     
         """        
+        
 rule orit_files_integration:
     input:
-       expand("tmp/function/orit/{file_name}_{i}_orit.txt", file_name=file_name, i=fasta_chunk_list)   # maybe put all files in a folder?
+       expand("tmp/function/orit/{file_name}_{i}_orit.txt", file_name=file_name, i=fasta_chunk_list)   
     output:
-        'tmp/function/orit.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/orit.txt'  
     shell:
         """
         cat {input} > {output}
-        rm {input}
+  
         """        
+        
 rule ref_files_integration:
     input:
-       expand("tmp/function/ref/{file_name}_{i}_ref.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/ref/{file_name}_{i}_ref.txt", file_name=file_name, i=fasta_chunk_list)  
     output:
-        'tmp/function/ref.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/ref.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
-        """        
+      
+        """       
+         
 rule rep_files_integration:
     input:
-       expand("tmp/function/rep/{file_name}_{i}_rep.txt", file_name=file_name, i=faa_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/rep/{file_name}_{i}_rep.txt", file_name=file_name, i=faa_chunk_list)  
     output:
-        'tmp/function/rep.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/rep.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
+      
         """        
     
 rule inc_files_integration:
     input:
-       expand("tmp/function/inc/{file_name}_{i}_inc.txt", file_name=file_name, i=fasta_chunk_list)  # maybe put all files in a folder?
+       expand("tmp/function/inc/{file_name}_{i}_inc.txt", file_name=file_name, i=fasta_chunk_list)  
     output:
-        'tmp/function/inc.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        'tmp/function/inc.txt'   
     shell:
         """
         cat {input} > {output}
-        rm {input}
-        """                            
+     
+        """            
+                        
