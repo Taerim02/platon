@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 import pyfastx
 import cProfile
-
+import shutil
 import __init__ as init
 import db as db
 import config as cfg
@@ -96,7 +96,8 @@ def main():
                 'replication_hits': [],
                 'conjugation_hits': [],
                 'rrnas': [],
-                'plasmid_hits': []
+                'plasmid_hits': [],
+                'protein_score': 0
             }
             raw_contigs.append(contig)
                        
@@ -107,7 +108,7 @@ def main():
             elif(match_unicycler is not None):
                 contig['coverage'] = float(match_unicycler.group(1))
                 if(match_unicycler.group(2) is not None):
-                    contig['is_circular'] = True                  # can be circularized
+                    contig['is_circular'] = True                  
                     contig['type'] = True
             else:
                 contig['coverage'] = 0
@@ -132,10 +133,21 @@ def main():
         log.error('something went wrong!', exc_info=True)
         sys.exit('ERROR: something went wrong!')
         
-    for name in ['rrnas', 'orit', 'inc', 'ref', 'orf', 'function']:
+
+    
+    #shutil.rmtree('tmp')
+        
+    if not os.path.exists('tmp'):    
+        os.mkdir('tmp')
+    for name in [ "rrnas", "orit", "inc", "ref", 'orf', 'function', 'chunk', 'protein']:
         if not os.path.exists(f'tmp/{name}'):
             os.mkdir(f'tmp/{name}')
+            
 
+
+    for name in ["amr", "rep", "mob", "conj", "cir", "rrnas", "orit", "inc", "ref"]:
+        if not os.path.exists(f'tmp/function/{name}'):
+            os.mkdir(f'tmp/function/{name}')
 
     i_list = pf.contigs_into_chunks(contigs, pc.DEFAULT_CONTIG_SIZE) 
 
@@ -144,52 +156,58 @@ def main():
         workdir=cfg.output_path,
         cores=10, 
     )
+    
 
-    pf.delete_contig_files(i_list)
+    #pf.delete_contig_files(i_list)
+    
 
     name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
     
     full_filtered_contig_path = os.path.join('tmp', f"{name}_filtered.fasta")
     pf.fasta_into_chunk(full_filtered_contig_path, pc.DEFAULT_CONTIG_SIZE)
-    os.remove(full_filtered_contig_path)
+
 
     full_filtered_proteins_path = os.path.join('tmp', f"{name}_filtered.faa")
     pf.faa_into_chunk(full_filtered_proteins_path, pc.DEFAULT_CONTIG_SIZE)
-    os.remove(full_filtered_proteins_path)
+    
+    
 
     result2 = snakemake(
         snakefile="Snakefile_meta_2_blast.py",
         workdir=cfg.output_path,
         cores=20,  scheduler="greedy" # keepgoing=True
     )
+
     
-    
-    orf_files = os.listdir('tmp/orf')
+    orf_files = os.listdir(f'tmp/orf')
+    tmp_contigs = {}
     for file in orf_files:
-        with open(os.path.join('tmp/orf', file),"r") as fh:
+        with open(os.path.join(f'tmp/orf', file),"r") as fh:
             for line in fh:
                 line = json.loads(line) 
                 contig_id = line['contig']
                 orf_id = line['id']
                 contigs[contig_id]['orfs'][orf_id]= line
+                tmp_contigs[contig_id] = contigs[contig_id]
+    contigs = tmp_contigs
+
     
-    
-    protein_score_pattern = r'contig RDS: contig=([A-Z0-9]+), RDS=(-?[0-9.]+)'
+    protein_score_pattern = r'contig RDS: contig=([a-zA-Z0-9_.]+), RDS=(-?[0-9.]+)'
     protein_score_files = os.listdir('tmp/protein_score')
-    for file in protein_score_files:
-        with open(os.path.join('tmp/protein_score', file),"r") as fh:
+    for f in protein_score_files:
+        with open(os.path.join(f'tmp/protein_score', f),"r") as fh:
             for line in fh:
                 match = re.match(protein_score_pattern, line)
                 if match:
-                    #if contig_id in contig_ids:  
                     contig_id = match.group(1)
                     contigs[contig_id]['protein_score']= float(match.group(2))
+    
                     
-    for name_dict in [{'amr.txt':'amr_hits'}, {'rrnas.txt':'rrnas'}, {'orit.txt':'orit_hits'}, {'cir.txt':'is_circular'}, {'inc.txt':'inc_types'}, 
-            {'ref.txt':'plasmid_hits'}, {'mob.txt': 'mobilization_hits'}, {'rep.txt':'replication_hits'}, {'conj.txt':'conjugation_hits'}]:
-            pf.extract_function_info(contigs, list(name_dict.keys())[0], name_dict[list(name_dict.keys())[0]])
+    for names in [ ['amr.txt','amr_hits'], ['rrnas.txt','rrnas'], ['orit.txt','orit_hits'], ['cir.txt','is_circular'], ['inc.txt','inc_types'], 
+            ['ref.txt','plasmid_hits'], ['mob.txt','mobilization_hits'], ['rep.txt','replication_hits'], ['conj.txt','conjugation_hits']]:
+            pf.extract_function_info(contigs, names[0], names[1])
                       
-    """                
+               
     function_pattern = r"id: ([A-Z0-9]+) \{(.+)\}"
 
     with open(os.path.join('tmp/function', 'amr.txt'),"r") as fh:
@@ -278,8 +296,7 @@ def main():
                 dict_value = ast.literal_eval(dict_string)
                 print(dict_string)
                 contigs[contig_id]['conjugation_hits'].append(dict_value)
-    """
-                    
+         
     filtered_contigs = None
     if(args.characterize):  # skip protein score based filtering
         filtered_contigs = contigs
@@ -330,6 +347,7 @@ def main():
             print('No potential plasmid contigs found!')
             print(pc.HEADER)
                   
+    #shutil.rmtree('tmp')
 
     # write comprehensive results to JSON file
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.json')
