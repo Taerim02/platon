@@ -97,7 +97,6 @@ def main():
                 'conjugation_hits': [],
                 'rrnas': [],
                 'plasmid_hits': [],
-                'type': []             # change
             }
             raw_contigs.append(contig)
 
@@ -110,7 +109,6 @@ def main():
                 contig['coverage'] = float(match_unicycler.group(1))
                 if(match_unicycler.group(2) is not None):
                     contig['is_circular'] = True                  # can be circularized
-                    contig['type'] = True
             else:
                 contig['coverage'] = 0
 
