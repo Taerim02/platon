@@ -17,7 +17,7 @@ hints:
   SoftwareRequirement:
     packages:
       platon:
-      version: [ "1.7.0" ]
+      version: [ "2.0.0" ]
 
 requirements:
   ResourceRequirement:
@@ -41,8 +41,9 @@ inputs:
     default: 'accuracy'
   - doc: Run in metagenome mode
     id: metagenome
-    inputBinding: {prefix: --meta}
-    type: boolean
+    inputBinding: {prefix: --module}
+    type: string
+    default: 'genomic'
   - doc: Threads
     id: threads
     inputBinding: {prefix: --threads}

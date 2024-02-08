@@ -1,31 +1,23 @@
-import pandas as pd
-import os 
+import os, re 
 import glob
-import re
-import db as db
-import config as cfg
-import functions as pf
 import pyfastx
 
-############################
+import platon
+import platon.db as db
+import platon.config as cfg
+import platon.functions as pf
 
-output_directory = cfg.output_path
+
 main_fasta_file = cfg.genome_path
-file_name = pf.get_base_name(str(main_fasta_file)) 
-
-ncbi_amr = cfg.db_path.joinpath('ncbifam-amr')
-ncbi_rep = cfg.db_path.joinpath('replication')
-ncbi_mob = cfg.db_path.joinpath('mobilization')
-ncbi_conj = cfg.db_path.joinpath('conjugation')
-
+file_name = pf.get_base_name(main_fasta_file)
+current_path = config["current_path"]
 
 # Define the regular expression pattern
 pattern_faa = r'(.+)_(\d+)_filtered.faa$'
 pattern_fasta = r'(.+)_(\d+)_filtered.fasta$'
-
-#log_file =  glob.glob('tmp/*.log')
 all_fa_file_paths = glob.glob('tmp/*_filtered.faa')
 all_fasta_file_paths = glob.glob('tmp/*_filtered.fasta')
+
 
 # Store the extracted file_name part
 faa_chunk_list = []
@@ -37,12 +29,9 @@ for file_path in all_fa_file_paths:
         faa_files.append(file_path)
         number = int(match.group(2))
         faa_chunk_list.append(number)
-print(faa_chunk_list)
-print(faa_files)
 
 fasta_chunk_list = []
 fasta_files = []
-
 
 for file_path in all_fasta_file_paths:
     # Extract both the file name part and the number from the file path
@@ -50,25 +39,7 @@ for file_path in all_fasta_file_paths:
     if match:
         fasta_files.append(file_path)
         number = int(match.group(2))
-        fasta_chunk_list.append(number)
-        
-print(fasta_chunk_list)
-print(fasta_files)
-
-
-current_directory = os.getcwd()
-
-
-def get_inputs(wildcards):
-    faa = ["amr", "rep", "mob", "conj"]  # List of possible values for the txt wildcard
-    fasta = ["cir", "rrnas", "orit", "inc", "ref"]
-    files = []
-    for t in faa:
-        files.extend(expand("tmp/function/{txt}/{file_name}_{i}_{txt}.txt", file_name=file_name, i=faa_chunk_list, txt=t))
-    for t in fasta:
-        files.extend(expand("tmp/function/{txt}/{file_name}_{i}_{txt}.txt", file_name=file_name, i=fasta_chunk_list, txt=t))
-    return files
-
+        fasta_chunk_list.append(number)        
 
 
 def get_blast_word_size(contig_name):
@@ -82,10 +53,10 @@ def get_blast_word_size(contig_name):
     return blast_word_size
 
 
-
+current_directory = os.getcwd()
 all_contigs = glob.glob(os.path.join(current_directory, 'tmp/contigs/*.fasta'))
-
 contig_names = []
+
 for contig_file in all_contigs:
     # Extract both the file name part and the number from the file path
     match = re.match(r'(.+)\.fasta$', os.path.basename(contig_file))   
@@ -97,61 +68,57 @@ fasta = ["cir", "rrnas", "orit", "inc", "ref"]
 
 
 
-
-
 rule all:
     input:
         'tmp/function/amr.txt', 'tmp/function/rep.txt' , 'tmp/function/mob.txt' ,'tmp/function/conj.txt' ,'tmp/function/ref.txt' ,
         'tmp/function/cir.txt' ,'tmp/function/rrnas.txt' ,'tmp/function/inc.txt' ,'tmp/function/orit.txt' ,
 
 
-
 rule search_amr_genes:
     input:
         faa_file = 'tmp/{file_name}_{i}_filtered.faa',
     output:
-        amr = 'tmp/function/amr/{file_name}_{i}_amr.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        amr = 'tmp/function/amr/{file_name}_{i}_amr.txt'   
     params:
         db_path = cfg.db_path.joinpath('ncbifam-amr'),
         name = file_name
     shell:
-        'python amr.py --name {params.name} --db_path {params.db_path} --output {output.amr} {input.faa_file}'
+        'python {current_path}/platon/amr.py --name {params.name} --db_path {params.db_path} --output {output.amr} {input.faa_file}'
 
 
 rule search_replication_genes: 
     input:
         faa_file = 'tmp/{file_name}_{i}_filtered.faa',
     output:
-        rep = 'tmp/function/rep/{file_name}_{i}_rep.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        rep = 'tmp/function/rep/{file_name}_{i}_rep.txt'  
     params:
         db_path = cfg.db_path.joinpath('replication'),
         name = file_name
     shell:
-        'python rep.py --name {params.name} --db_path {params.db_path} --output {output.rep} {input.faa_file}'
+        'python {current_path}/platon/rep.py --name {params.name} --db_path {params.db_path} --output {output.rep} {input.faa_file}'
 
 
 rule search_mobilization_genes:
     input:
         faa_file = 'tmp/{file_name}_{i}_filtered.faa',
     output:
-        mob = 'tmp/function/mob/{file_name}_{i}_mob.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        mob = 'tmp/function/mob/{file_name}_{i}_mob.txt'  
     params:
         db_path = cfg.db_path.joinpath('mobilization'),
         name = file_name
     shell:
-        'python mob.py --name {params.name} --db_path {params.db_path} --output {output.mob} {input.faa_file}'
-
+        'python {current_path}/platon/mob.py --name {params.name} --db_path {params.db_path} --output {output.mob} {input.faa_file}'
 
 rule search_conjugation_genes:
     input:
         faa_file = 'tmp/{file_name}_{i}_filtered.faa',
     output:
-        conj = 'tmp/function/conj/{file_name}_{i}_conj.txt'   #str(cfg.db_path.joinpath('ncbifam-amr'))
+        conj = 'tmp/function/conj/{file_name}_{i}_conj.txt'   
     params:
         db_path = str(cfg.db_path.joinpath('conjugation')),
         name = file_name
     shell:
-        'python conj.py --name {params.name} --db_path {params.db_path} --output {output.conj} {input.faa_file}'
+        'python {current_path}/platon/conj.py --name {params.name} --db_path {params.db_path} --output {output.conj} {input.faa_file}'
 
 
 rule test_circularity:
@@ -163,7 +130,7 @@ rule test_circularity:
         tmpdir = str(cfg.tmp_path),
         name = file_name
     shell: 
-        'python test_circularity.py --name {params.name} --tmpdir {params.tmpdir} --output {output.cir} {input.fasta_file}'
+        'python {current_path}/platon/circularity.py --name {params.name} --tmpdir {params.tmpdir} --output {output.cir} {input.fasta_file}'
 
 
 
@@ -185,12 +152,10 @@ rule search_rrnas:
         --tblout {params.rrnas} \
         {params.db_path} \
         {input.fasta_file} > tmp/rrnas/output.txt
-        
-        
-        python rrnas_result.py --name {params.name} --output {output.rrnas} {input.fasta_file} {params.rrnas} 
+
+        python {current_path}/platon/rrnas_result.py --name {params.name} --output {output.rrnas} {input.fasta_file} {params.rrnas} 
         """
         
-
 rule search_inc_type:
     input:
         contig_file = "tmp/{file_name}_{i}_filtered.fasta"
@@ -211,9 +176,8 @@ rule search_inc_type:
         -outfmt '6 qseqid sseqid sstart send sstrand pident qcovs bitscore' \
         -out {params.inc}
 
-        python inc_result.py --name {params.name} --output {output.inc} {input.contig_file} {params.inc}
+        python {current_path}/platon/inc_result.py --name {params.name} --output {output.inc} {input.contig_file} {params.inc}
         """
-
 
 rule search_orit_sequences:
     input:
@@ -236,9 +200,8 @@ rule search_orit_sequences:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.orit}
 
-        python orit_result.py --name {params.name} --output {output.orit} {input.contig_file} {params.orit}
+        python {current_path}/platon/orit_result.py --name {params.name} --output {output.orit} {input.contig_file} {params.orit}
         """
-
 
 rule search_reference_plasmids:  
     input:
@@ -261,7 +224,7 @@ rule search_reference_plasmids:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.ref}
 
-        python ref_result.py --name {params.name} --output {output.ref} {input.contig_file} {params.ref}
+        python {current_path}/platon/ref_result.py --name {params.name} --output {output.ref} {input.contig_file} {params.ref}
         """
 
 rule amr_files_integration:
@@ -273,7 +236,7 @@ rule amr_files_integration:
         """
         cat {input} > {output}
         """
-        
+
 rule mob_files_integration:
     input:
        expand("tmp/function/mob/{file_name}_{i}_mob.txt", file_name=file_name, i=faa_chunk_list)
@@ -282,9 +245,8 @@ rule mob_files_integration:
     shell:
         """
         cat {input} > {output}
-        
         """
-        
+
 rule conj_files_integration:
     input:
        expand("tmp/function/conj/{file_name}_{i}_conj.txt", file_name=file_name, i=faa_chunk_list) 
@@ -293,9 +255,8 @@ rule conj_files_integration:
     shell:
         """
         cat {input} > {output}
-    
         """
-        
+
 rule cir_files_integration:
     input:
        expand("tmp/function/cir/{file_name}_{i}_cir.txt", file_name=file_name, i=fasta_chunk_list)  
@@ -304,9 +265,8 @@ rule cir_files_integration:
     shell:
         """
         cat {input} > {output}
-  
         """
-        
+
 rule rrnas_files_integration:
     input:
        expand("tmp/function/rrnas/{file_name}_{i}_rrnas.txt", file_name=file_name, i=fasta_chunk_list)  
@@ -315,9 +275,8 @@ rule rrnas_files_integration:
     shell:
         """
         cat {input} > {output}
-     
         """        
-        
+
 rule orit_files_integration:
     input:
        expand("tmp/function/orit/{file_name}_{i}_orit.txt", file_name=file_name, i=fasta_chunk_list)   
@@ -326,9 +285,8 @@ rule orit_files_integration:
     shell:
         """
         cat {input} > {output}
-  
         """        
-        
+    
 rule ref_files_integration:
     input:
        expand("tmp/function/ref/{file_name}_{i}_ref.txt", file_name=file_name, i=fasta_chunk_list)  
@@ -337,9 +295,8 @@ rule ref_files_integration:
     shell:
         """
         cat {input} > {output}
-      
         """       
-         
+
 rule rep_files_integration:
     input:
        expand("tmp/function/rep/{file_name}_{i}_rep.txt", file_name=file_name, i=faa_chunk_list)  
@@ -348,9 +305,8 @@ rule rep_files_integration:
     shell:
         """
         cat {input} > {output}
-      
         """        
-    
+
 rule inc_files_integration:
     input:
        expand("tmp/function/inc/{file_name}_{i}_inc.txt", file_name=file_name, i=fasta_chunk_list)  
@@ -359,6 +315,4 @@ rule inc_files_integration:
     shell:
         """
         cat {input} > {output}
-     
         """            
-                        

@@ -27,6 +27,7 @@ authors:
     given-names: Alexander
     orcid: https://orcid.org/0000-0002-7086-2568
     affiliation: Bioinformatics and Systems Biology, Justus Liebig University Giessen, Giessen, 35392, Germany
+
 title: "Platon: identification and characterization of bacterial plasmid contigs in short-read draft assemblies exploiting protein sequence-based replicon distribution scores"
 doi: "10.1099/mgen.0.000398"
 version: 1.7
@@ -73,3 +74,15 @@ preferred-citation:
   year: 2020
   month: 6
   doi: 10.1099/mgen.0.000398
+
+version: 2.0
+authors:
+  -
+    family-names: Schwengers
+    given-names: Oliver
+    orcid: https://orcid.org/0000-0003-4216-2721
+    affiliation: Bioinformatics and Systems Biology, Justus Liebig University Giessen, Giessen, 35392, Germany
+  -
+    family-names: Lee
+    given-names: Taerim
+    affiliation:  Institute of Biochemistry and Biology, Universität Potsdam, Potsdam, 14469, Germany

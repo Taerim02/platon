@@ -4,12 +4,12 @@ import re
 import sys
 import pyfastx
 import argparse
-import config as cfg
-import constants as pc
 import pandas as pd
 import json
 
-parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") ## output -> protein_score unneccessary 
+import constants as pc
+
+parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") 
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("tsv_file", help="TSV FASTA file")
 parser.add_argument("orf_file", help="orf_file")
@@ -17,15 +17,14 @@ parser.add_argument("--mps", help="mps path")
 parser.add_argument("--name", help="Output directory")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
-parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+parser.add_argument("--verbose", help="Enable verbose output")
 
-#python rds_filter.py bacteroides_coagulans_gca.cdna.all_1.py bacteroides_coagulans_gca.cdna.all_1.fasta tmp/bacteroides_coagulans_gca.cdna.all_diamond_1.tsv
 args = parser.parse_args()
 
 def get_base_name(file_name):
     return os.path.splitext(os.path.basename(file_name))[0]
 file_name = get_base_name(str(args.fasta_file))
-#print(file_name)
+
 pattern = r'_(\d+)\.fasta'
 match = re.search(pattern, args.fasta_file)
 match = match.group(1)
@@ -33,8 +32,6 @@ match = match.group(1)
 log_file = os.path.join(f'{args.name}.log')
 protein_score_file = os.path.join(args.output, f'{file_name}_protein_score.txt')
 
-
-#print(match)
 contigs = {}
 raw_contigs = []
 try:
@@ -165,7 +162,7 @@ for record in pyfastx.Fasta(str(proteins_path)):
 
 # write contig sequences to fasta files for subsequent parallel analyses
 full_filtered_contig_path = os.path.join(args.output, f"{args.name}_filtered.fasta")
-
+print(full_filtered_contig_path)
 for id, contig in scored_contigs.items():
     with open(full_filtered_contig_path, "a") as ffh:
         ffh.write(f">{contig['id']}\n")

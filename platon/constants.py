@@ -7,7 +7,7 @@ RDS_SENSITIVITY_THRESHOLD = -7.9  # sensitivity => 95 %
 RDS_CONSERVATIVE_THRESHOLD = 0.1  # highest accuracy
 RDS_SPECIFICITY_THRESHOLD = 0.7  # specificity >= 99.9 %
 MIN_CIRC_BASEPAIR_OVERLAP = 100
-DEFAULT_CONTIG_SIZE = 1000000
+DEFAULT_CONTIG_SIZE = 1000000 # To get a chunk or chunks of contigs
 
 
 SPADES_CONTIG_PATTERN = re.compile(r'NODE_\d+_length_\d+_cov_(\d+\.\d+)')

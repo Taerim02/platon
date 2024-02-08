@@ -5,6 +5,7 @@ from subprocess import run
 
 from .conftest import FILES
 
+# Test for genomic module
 
 def test_platon_db_parameter(tmpdir):
     # full test on draft assembly containing plasmid contigs
@@ -58,3 +59,61 @@ def test_platon_wo_plasmids(tmpdir):
 
     plasmids_path = tmpdir_path.joinpath('test.plasmid.fasta')  # test if plasmid fasta file is empty
     assert plasmids_path.stat().st_size == 0
+
+# Test for metagenomic module
+
+def test_platon_db_parameter_meta(tmpdir):
+    # full test on draft assembly containing plasmid contigs
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--module', 'metagenomic'])
+    assert proc.returncode == 0
+
+    tmpdir_path = Path(tmpdir)
+    for file in FILES:
+        output_path = tmpdir_path.joinpath(file)
+        assert Path.exists(output_path)
+
+
+def test_platon_db_env_meta(tmpdir):
+    # full test on draft assembly containing plasmid contigs
+
+    env = os.environ
+    env['PLATON_DB'] = 'test/db'
+    proc = run(['bin/platon', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--module', 'metagenomic'], env=env)
+    assert proc.returncode == 0
+
+    tmpdir_path = Path(tmpdir)
+    for file in FILES:
+        output_path = tmpdir_path.joinpath(file)
+        assert Path.exists(output_path)
+
+
+def test_platon_w_plasmids_meta(tmpdir):
+    # full test on draft assembly containing plasmid contigs
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-w-plasmids.fna','--module', 'metagenomic'])
+    assert proc.returncode == 0
+
+    tmpdir_path = Path(tmpdir)
+    for file in FILES:
+        output_path = tmpdir_path.joinpath(file)
+        assert Path.exists(output_path)
+        assert output_path.stat().st_size > 0
+
+
+def test_platon_wo_plasmids_meta(tmpdir):
+    # full test on draft assembly containing no plasmid contigs
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-wo-plasmids.fna', '--module', 'metagenomic'])
+    assert proc.returncode == 0
+
+    tmpdir_path = Path(tmpdir)
+    for file in FILES:
+        output_path = tmpdir_path.joinpath(file)
+        assert Path.exists(output_path)
+    
+    chromosome_path = tmpdir_path.joinpath('test.chromosome.fasta')
+    assert chromosome_path.stat().st_size > 0
+
+
+    plasmids_path = tmpdir_path.joinpath('test.plasmid.fasta')  # test if plasmid fasta file is empty
+    assert plasmids_path.stat().st_size == 0
+
+

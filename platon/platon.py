@@ -1,19 +1,21 @@
-import db as db
-import config as cfg
-import constants as pc
-import functions as pf
-import utils as pu
-import meta_platon
-import single_platon
+
 from pathlib import Path
-import cProfile
-import functools as ft
 import json
 import logging
 import os, re, sys
 import shutil
 import subprocess as sp
-import __init__ as init
+import pyfastx
+
+
+import platon
+import platon.db as db
+import platon.config as cfg
+import platon.constants as pc
+import platon.functions as pf
+import platon.utils as pu
+import platon.__init__ as init
+
 
 def main():
     # parse arguments
@@ -69,14 +71,121 @@ def main():
         print(f'\tcharacterize: {cfg.characterize}')
         print(f'\ttmp path: {cfg.tmp_path}')
         print(f'\t# threads: {cfg.threads}')
+    
+    # set lists for the JSON file.    
+    raw_contigs = []
+    filtered_contigs = None
+    contigs = {}
 
-    if cfg.module == 'metagenomic':
-        meta_platon.main()
+    # parse draft genome
+    if(args.verbose):
+        print('parse draft genome...')
+    try:
+        for record in pyfastx.Fasta(str(cfg.genome_path)):
+            length = len(record.seq)
+            contig = {
+                'id': record.name,
+                'length': length,
+                'sequence': str(record.seq),
+                'orfs': {},
+                'is_circular': False,
+                'inc_types': [],
+                'amr_hits': [],
+                'mobilization_hits': [],
+                'orit_hits': [],
+                'replication_hits': [],
+                'conjugation_hits': [],
+                'rrnas': [],
+                'plasmid_hits': [],
+                'type': []             # change
+            }
+            raw_contigs.append(contig)
+
+            # read coverage from contig names if they were assembled with SPAdes
+            match_spades = re.fullmatch(pc.SPADES_CONTIG_PATTERN, record.name)
+            match_unicycler = re.fullmatch(pc.UNICYCLER_CONTIG_PATTERN, record.description)
+            if(match_spades is not None):
+                contig['coverage'] = float(match_spades.group(1))
+            elif(match_unicycler is not None):
+                contig['coverage'] = float(match_unicycler.group(1))
+                if(match_unicycler.group(2) is not None):
+                    contig['is_circular'] = True                  # can be circularized
+                    contig['type'] = True
+            else:
+                contig['coverage'] = 0
+
+            # only include contigs with reasonable lengths except of
+            # platon runs in characterization mode
+            if(args.characterize):
+                contigs[record.name] = contig
+            else:                                            
+                if(length < pc.MIN_CONTIG_LENGTH):
+    
+                    log.info('exclude contig: too short: id=%s, length=%d', record.name, length)
+                    if (args.verbose):
+                        print(f'\texclude contig \'{record.name}\', too short ({length})')
+                elif(length >= pc.MAX_CONTIG_LENGTH):
+ 
+                    log.info('exclude contig: too long: id=%s, length=%d', record.name, length)
+                    if (args.verbose):
+                        print(f'\texclude contig \'{record.name}\', too long ({length})')
+                else:
+                    contigs[record.name] = contig
+
+    except: 
+        log.error('something went wrong!', exc_info=True)
+        sys.exit('ERROR: something went wrong!')
+
+    if(args.verbose):
+        print(f'\tparsed {len(raw_contigs)} raw contigs')
+        print(f'\texcluded {len(raw_contigs) - len(contigs)} contigs by size filter')
+        print(f'\tanalyze {len(contigs)} contigs')
+    log.info(
+        'length contig filter: # input=%d, # discarded=%d, # remaining=%d',
+        len(raw_contigs), (len(raw_contigs) - len(contigs)), len(contigs)
+    )
+
+    if(len(raw_contigs) == 0):
+        log.warning('no valid contigs!')
+        sys.exit('Error: input file contains no valid contigs.')
+
+    if(len(contigs) == 0):
+        print(pc.HEADER)
+        log.warning('no potential plasmid contigs!')
+        if(args.verbose):
+            print('No potential plasmid contigs found. Please, check contig lengths. Maybe you passed a finished or pseudo genome?')
+        sys.exit(0)
+    
+    if args.module == 'metagenomic':
+        import platon.meta_platon as meta_platon
+        raw_contigs, contigs, filtered_contigs = meta_platon.main(raw_contigs, contigs, filtered_contigs, args, log, output_path)
     else:
-        single_platon.main()
+        import platon.single_platon as single_platon
+        raw_contigs, contigs, filtered_contigs = single_platon.main(raw_contigs, contigs, filtered_contigs, args, log, output_path)
+    
+    # write comprehensive results to JSON file
+    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.json')
+    log.debug('output: json=%s', tmp_output_path)
+    with tmp_output_path.open(mode='w') as fh:
+        indent = '\t' if args.verbose else None
+        separators = (', ', ': ') if args.verbose else (',', ':')
+        json.dump(filtered_contigs, fh, indent=indent, separators=separators)
 
+    # write chromosome contigs to fasta file
+    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.chromosome.fasta')
+    log.debug('output: chromosomes=%s', tmp_output_path)
+    with tmp_output_path.open(mode='w') as fh:
+        for contig in raw_contigs:
+            if(contig['id'] not in filtered_contigs):
+                fh.write(f">{contig['id']}\n{contig['sequence']}\n")
+
+    # write plasmid contigs to fasta file
+    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.plasmid.fasta')
+    log.debug('output: plasmids=%s', tmp_output_path)
+    with tmp_output_path.open(mode='w') as fh:
+        for contig in raw_contigs:
+            if(contig['id'] in filtered_contigs):
+                fh.write(f">{contig['id']}\n{contig['sequence']}\n")
 
 if __name__ == '__main__':
     main()
-    #profiler = cProfile.Profile()
-    #profiler.runctx("main()", globals(), locals())

@@ -1,188 +1,72 @@
 import functools as ft
 import json
 import logging
-import os
-import sys
+import os, sys, re
 from pathlib import Path
 import pyfastx
-import cProfile
 import shutil
-import __init__ as init
-import db as db
-import config as cfg
-import constants as pc
-import functions as pf
-import utils as pu
 from snakemake import snakemake
 import pandas as pd
-import re
 import ast
 
 
-def main():
-    # parse arguments
+import platon
+import platon.__init__ as init
+import platon.db as db
+import platon.config as cfg
+import platon.constants as pc
+import platon.functions as pf
+import platon.utils as pu
 
-    args = pu.parse_arguments()
-  
-    ############################################################################
-    # Setup logging
-    ############################################################################
-    cfg.prefix = args.prefix if args.prefix else Path(args.genome).stem
-    
-    try:
-        output_path = Path(args.output) if args.output else Path.cwd()
-        if(not output_path.exists()):
-            output_path.mkdir(parents=True, exist_ok=True)
-        elif(not os.access(str(output_path), os.X_OK)):
-            sys.exit(f'ERROR: output path ({output_path}) not accessible!')
-        elif(not os.access(str(output_path), os.W_OK)):
-            sys.exit(f'ERROR: output path ({output_path}) not writable!')
-        output_path = output_path.resolve()
-        cfg.output_path = output_path
+
+def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
         
-    except:
-        sys.exit(f'ERROR: could not resolve or create output directory ({args.output})!')
-    logging.basicConfig(
-        filename=str(output_path.joinpath(f'{cfg.prefix}.log')),
-        filemode='w',
-        format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
-        level=logging.DEBUG if args.verbose else logging.INFO
-    )
-    log = logging.getLogger('MAIN')
-    log.info('version %s', init.__version__)
-    log.info('command line: %s', ' '.join(sys.argv))
-
-    ############################################################################
-    # Checks and configurations
-    # - check parameters and setup global configuration
-    # - test database
-    # - test binary dependencies
-    ############################################################################
-    cfg.setup(args)  # check parameters and prepare global configuration
-    db.check()  # test database
-    pu.test_dependencies()  # test dependencies
+    if not os.path.exists(output_path.joinpath('tmp')):    
+            os.mkdir(output_path.joinpath('tmp'))
+            
+    for folder in [ "rrnas", "orit", "inc", "ref", 'orf', 'function', 'chunk', 'protein']:
+        if not os.path.exists(output_path.joinpath(f'tmp/{folder}')):
+            os.mkdir(output_path.joinpath(f'tmp/{folder}'))
+            
     
-    if(cfg.verbose):
-        print(f'Platon v{init.__version__}')
-        print('Options and arguments:')
-        print(f'\tmain input: {cfg.genome_path}')
-        print(f'\tinput: {cfg.genome_path}')
-        print(f"\tdb: {cfg.db_path}")
-        print(f'\toutput: {cfg.output_path}')
-        print(f'\tprefix: {cfg.prefix}')
-        print(f'\tmode: {cfg.mode}')
-        print(f'\tcharacterize: {cfg.characterize}')
-        print(f'\ttmp path: {cfg.tmp_path}')
-        print(f'\t# threads: {cfg.threads}')
-
-    # parse draft genome
-    if(args.verbose):
-        print('parse draft genome...')
-    contigs = {}
-    raw_contigs = []
-    try:
-        for record in pyfastx.Fasta(str(cfg.genome_path)):
-            length = len(record.seq)
-            contig = {
-                'id': record.name,
-                'length': length,
-                'sequence': str(record.seq),  # is there any other way to keep this seq?
-                'orfs': {},
-                'is_circular': False,
-                'inc_types': [],
-                'amr_hits': [],
-                'mobilization_hits': [],
-                'orit_hits': [],
-                'replication_hits': [],
-                'conjugation_hits': [],
-                'rrnas': [],
-                'plasmid_hits': [],
-                'protein_score': 0
-            }
-            raw_contigs.append(contig)
-                       
-            match_spades = re.fullmatch(pc.SPADES_CONTIG_PATTERN, record.name)
-            match_unicycler = re.fullmatch(pc.UNICYCLER_CONTIG_PATTERN, record.description)
-            if(match_spades is not None):
-                contig['coverage'] = float(match_spades.group(1))
-            elif(match_unicycler is not None):
-                contig['coverage'] = float(match_unicycler.group(1))
-                if(match_unicycler.group(2) is not None):
-                    contig['is_circular'] = True                  # can be circularized
-                    contig['type'] = True
-            else:
-                contig['coverage'] = 0
-            
-            # only include contigs with reasonable lengths except of platon runs in characterization mode
-            
-            if(args.characterize):
-                contigs[record.name] = contig
-            else:                                            
-                if(length < pc.MIN_CONTIG_LENGTH):
-                    log.info('exclude contig: too short: id=%s, length=%d', record.name, length)
-                    if (args.verbose):
-                        print(f'\texclude contig \'{record.name}\', too short ({length})')
-                elif(length >= pc.MAX_CONTIG_LENGTH):
-                    log.info('exclude contig: too long: id=%s, length=%d', record.name, length)
-                    if (args.verbose):
-                        print(f'\texclude contig \'{record.name}\', too long ({length})')
-                else:
-                    contigs[record.name] = contig
-
-    except: 
-        log.error('something went wrong!', exc_info=True)
-        sys.exit('ERROR: something went wrong!')
-        
-
     
-    #shutil.rmtree('tmp')
-        
-    if not os.path.exists('tmp'):    
-        os.mkdir('tmp')
-    for name in [ "rrnas", "orit", "inc", "ref", 'orf', 'function', 'chunk', 'protein']:
-        if not os.path.exists(f'tmp/{name}'):
-            os.mkdir(f'tmp/{name}')
-            
-
-
-    for name in ["amr", "rep", "mob", "conj", "cir", "rrnas", "orit", "inc", "ref"]:
-        if not os.path.exists(f'tmp/function/{name}'):
-            os.mkdir(f'tmp/function/{name}')
-
-    i_list = pf.contigs_into_chunks(contigs, pc.DEFAULT_CONTIG_SIZE) 
-
+    for folder in ["amr", "rep", "mob", "conj", "cir", "rrnas", "orit", "inc", "ref"]:
+        if not os.path.exists(output_path.joinpath(f'tmp/function/{folder}')):
+            os.mkdir(output_path.joinpath(f'tmp/function/{folder}'))
+    
+    pf.contigs_into_chunks(contigs, pc.DEFAULT_CONTIG_SIZE, output_path) 
+    
     result1 = snakemake(
-        snakefile="Snakefile_meta_1.py",
-        workdir=cfg.output_path,
-        cores=10, 
+        snakefile="platon/Snakefile1",
+        workdir=output_path,
+        config={"current_path": Path.cwd()},
+        cores=cfg.threads, 
     )
     
-
-    #pf.delete_contig_files(i_list)
     
-
-    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    name = pf.get_base_name(cfg.genome_path)
     
-    full_filtered_contig_path = os.path.join('tmp', f"{name}_filtered.fasta")
-    pf.fasta_into_chunk(full_filtered_contig_path, pc.DEFAULT_CONTIG_SIZE)
-
-
-    full_filtered_proteins_path = os.path.join('tmp', f"{name}_filtered.faa")
-    pf.faa_into_chunk(full_filtered_proteins_path, pc.DEFAULT_CONTIG_SIZE)
+    full_filtered_contig_path = os.path.join(output_path.joinpath('tmp'), f"{name}_filtered.fasta")
+    pf.fasta_into_chunk(full_filtered_contig_path, pc.DEFAULT_CONTIG_SIZE, output_path)
     
     
-
+    full_filtered_proteins_path = os.path.join(output_path.joinpath('tmp'), f"{name}_filtered.faa")
+    pf.faa_into_chunk(full_filtered_proteins_path, pc.DEFAULT_CONTIG_SIZE, output_path)
+    
+    
+    
     result2 = snakemake(
-        snakefile="Snakefile_meta_2_blast.py",
-        workdir=cfg.output_path,
-        cores=20,  scheduler="greedy" # keepgoing=True
+        snakefile="platon/Snakefile2",
+        workdir=output_path,
+        config={"current_path": Path.cwd()},
+        cores=cfg.threads, scheduler="greedy",
     )
-
     
-    orf_files = os.listdir(f'tmp/orf')
+    
+    orf_files = os.listdir(output_path.joinpath('tmp/orf'))
     tmp_contigs = {}
     for file in orf_files:
-        with open(os.path.join(f'tmp/orf', file),"r") as fh:
+        with open(os.path.join(output_path.joinpath('tmp/orf'), file),"r") as fh:
             for line in fh:
                 line = json.loads(line) 
                 contig_id = line['contig']
@@ -190,114 +74,29 @@ def main():
                 contigs[contig_id]['orfs'][orf_id]= line
                 tmp_contigs[contig_id] = contigs[contig_id]
     contigs = tmp_contigs
-
     
     protein_score_pattern = r'contig RDS: contig=([a-zA-Z0-9_.]+), RDS=(-?[0-9.]+)'
-    protein_score_files = os.listdir('tmp/protein_score')
+    protein_score_files = os.listdir(output_path.joinpath('tmp/protein_score'))
     for f in protein_score_files:
-        with open(os.path.join(f'tmp/protein_score', f),"r") as fh:
+        with open(os.path.join(output_path.joinpath('tmp/protein_score'), f),"r") as fh:
             for line in fh:
                 match = re.match(protein_score_pattern, line)
                 if match:
                     contig_id = match.group(1)
-                    contigs[contig_id]['protein_score']= float(match.group(2))
+                    if contig_id in contigs:
+                        contigs[contig_id]['protein_score']= float(match.group(2))
     
                     
+    hmm = ['amr_hits', 'conjugation_hits', 'mobilization_hits', 'replication_hits']                  
+
     for names in [ ['amr.txt','amr_hits'], ['rrnas.txt','rrnas'], ['orit.txt','orit_hits'], ['cir.txt','is_circular'], ['inc.txt','inc_types'], 
             ['ref.txt','plasmid_hits'], ['mob.txt','mobilization_hits'], ['rep.txt','replication_hits'], ['conj.txt','conjugation_hits']]:
-            pf.extract_function_info(contigs, names[0], names[1])
-                      
-               
-    function_pattern = r"id: ([A-Z0-9]+) \{(.+)\}"
-
-    with open(os.path.join('tmp/function', 'amr.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['amr_hits'].append(dict_value)
-
-
-    with open(os.path.join('tmp/function', 'rrnas.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['rrnas'].append(match.group(2))
-
-    with open(os.path.join('tmp/function', 'orit.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['orit_hits'].append(dict_value)
-    
-
-    with open(os.path.join('tmp/function', 'cir.txt'),"r") as fh: 
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['is_circular'].append(match.group(2))
-                    
-
-    with open(os.path.join('tmp/function', 'inc.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['inc_types'].append(dict_value)
-                    
-
-    with open(os.path.join('tmp/function', 'ref.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['plasmid_hits'].append(dict_value)
-                    
-    with open(os.path.join('tmp/function', 'mob.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['mobilization_hits'].append(dict_value)
             
-
-    with open(os.path.join('tmp/function', 'rep.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                contigs[contig_id]['replication_hits'].append(dict_value)
-                    
-    with open(os.path.join('tmp/function', 'conj.txt'),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match: 
-                contig_id = match.group(1)
-                dict_string = "{" + match.group(2) + "}"
-                dict_value = ast.literal_eval(dict_string)
-                print(dict_string)
-                contigs[contig_id]['conjugation_hits'].append(dict_value)
+        if names[1] in hmm: 
+            pf.extract_function_info_hmm(contigs, names[0], names[1], output_path)
+        else:
+            pf.extract_function_info(contigs, names[0], names[1], output_path)
          
-    filtered_contigs = None
     if(args.characterize):  # skip protein score based filtering
         filtered_contigs = contigs
     elif(args.mode == 'sensitivity'):  # skip protein score based filtering but apply rRNA filter
@@ -305,7 +104,7 @@ def main():
     elif(args.mode == 'specificity'):
         filtered_contigs = {k: v for (k, v) in contigs.items() if v['protein_score'] >= pc.RDS_SPECIFICITY_THRESHOLD}
     else:
-        filtered_contigs = {k: v for (k, v) in contigs.items() if pf.filter_contig_meta(v)}
+        filtered_contigs = {k: v for (k, v) in contigs.items() if pf.filter_contig(v)}
         
         
     # lookup AMR genes
@@ -323,8 +122,8 @@ def main():
             amr_gene = amr_genes[hit['hmm-id']]
             hit['gene'] = amr_gene['gene']
             hit['product'] = amr_gene['product']
-
-
+    
+    
     # print results to tsv file and STDOUT
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.tsv')
     log.debug('output: tsv=%s', tmp_output_path)
@@ -347,34 +146,5 @@ def main():
             print('No potential plasmid contigs found!')
             print(pc.HEADER)
                   
-    shutil.rmtree('tmp')
-
-    # write comprehensive results to JSON file
-    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.json')
-    log.debug('output: json=%s', tmp_output_path)
-    with tmp_output_path.open(mode='w') as fh:
-        indent = '\t' if args.verbose else None
-        separators = (', ', ': ') if args.verbose else (',', ':')
-        json.dump(filtered_contigs, fh, indent=indent, separators=separators)
-
-    # write chromosome contigs to fasta file
-    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.chromosome.fasta')
-    log.debug('output: chromosomes=%s', tmp_output_path)
-    with tmp_output_path.open(mode='w') as fh:
-        for contig in raw_contigs:
-            if(contig['id'] not in filtered_contigs):
-                fh.write(f">{contig['id']}\n{contig['sequence']}\n")
-
-    # write plasmid contigs to fasta file
-    tmp_output_path = output_path.joinpath(f'{cfg.prefix}.plasmid.fasta')
-    log.debug('output: plasmids=%s', tmp_output_path)
-    with tmp_output_path.open(mode='w') as fh:
-        for contig in raw_contigs:
-            if(contig['id'] in filtered_contigs):
-                fh.write(f">{contig['id']}\n{contig['sequence']}\n")
-            
-
-if __name__ == '__main__':
-    main()
-    #profiler = cProfile.Profile()
-    #profiler.runctx("main()", globals(), locals())
+    shutil.rmtree(output_path.joinpath('tmp'))
+    return raw_contigs, contigs, filtered_contigs

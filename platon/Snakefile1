@@ -1,48 +1,44 @@
 import os
 import glob
 import re
-import db as db
-import config as cfg
-import functions as pf
-current_directory = os.getcwd()
 
-# Define the regular expression pattern
-pattern = r'(.+)_(\d+)\.fasta$'
-all_file_paths = glob.glob(os.path.join(current_directory, '*.fasta'))
-#print(all_file_paths)
+import platon
+import platon.db as db
+import platon.config as cfg
+import platon.functions as pf
 
-######################################
 
-output_directory = cfg.output_path
+current_path = config["current_path"]
+
+all_file_paths = glob.glob("tmp/chunk/*.fasta")
+
+
+
+# Get the name from the genome file
 main_fasta_file = cfg.genome_path
 file_name = pf.get_base_name(main_fasta_file) # make a pattern according to the base name
 
-############################################
 
 # Store the extracted file_name part
 chunk_list = []
+pattern = r'(.+)_(\d+)\.fasta$'
+
 
 for file_path in all_file_paths:
     # Extract both the file name part and the number from the file path
     match = re.match(pattern, os.path.basename(file_path))
-    
     if match:
-        #file_name = match.group(1)
         number = int(match.group(2))
         chunk_list.append(number)
-
-if not os.path.exists('tmp'):
-    os.mkdir('tmp')
 
 
 rule all:
     input:
         expand("tmp/protein/{file_name}_{i}_proteins.faa", file_name=file_name, i=chunk_list),
         expand("tmp/orf/{file_name}_{i}_orf.txt", file_name=file_name, i=chunk_list),
-
         expand("tmp/{file_name}_{i}_diamond.tsv", file_name=file_name, i=chunk_list),
-        
         expand("tmp/protein_score/{file_name}_{i}_protein_score.txt", file_name=file_name, i=chunk_list),
+
 
 rule orfs_find:
     input:
@@ -52,32 +48,40 @@ rule orfs_find:
         orf_txts = "tmp/orf/{file_name}_{i}_orf.txt",
     params:
         outdir='tmp',
-        name = file_name
+        name = file_name,
+        verbose = cfg.verbose
     shell:
-        'python orfs_find.py --name {params.name} --output {params.outdir} {input.fasta_file}'
+        'python {current_path}/platon/orfs_find.py {input.fasta_file} --verbose {params.verbose} --name {params.name} --output {params.outdir}'
+
+
 
 rule mps_find:
     input:
-        faa_file= str("tmp/protein/{file_name}_{i}_proteins.faa")
+        faa_file= "tmp/protein/{file_name}_{i}_proteins.faa"
     output:
-        outdir = str("tmp/{file_name}_{i}_diamond.tsv")
+        outdir = "tmp/{file_name}_{i}_diamond.tsv"
     params:
         threads = cfg.threads,
         tmpdir= 'tmp',
-        db_path = str(cfg.db_path.joinpath('mps.dmnd'))
+        db_path = cfg.db_path.joinpath('mps.dmnd')
+
     shell:
         'diamond blastp --db {params.db_path} --query {input.faa_file} --out {output.outdir} --max-target-seqs 1 --id 90 --query-cover 80 --subject-cover 80 --threads {params.threads} --tmpdir {params.tmpdir}'
 
+
+
 rule rds_filter:
     input:
-        fasta_file="tmp/chunk/{file_name}_{i}.fasta",
+        fasta_file = "tmp/chunk/{file_name}_{i}.fasta",
         tsv_file = 'tmp/{file_name}_{i}_diamond.tsv',
         orf_txts = "tmp/orf/{file_name}_{i}_orf.txt",
     output:
         protein_score = "tmp/protein_score/{file_name}_{i}_protein_score.txt"
     params:
-        mps = str(cfg.db_path.joinpath('mps.tsv')),
+        mps = cfg.db_path.joinpath('mps.tsv'),
         outdir= 'tmp',
-        name = file_name
+        name = file_name,
+        verbose = cfg.verbose
     shell:         
-        'python rds_filter.py --verbose --name {params.name} --mps {params.mps} --output {params.outdir} {input}'
+        'python {current_path}/platon/rds_filter.py --verbose {params.verbose} --name {params.name} --mps {params.mps} --output {params.outdir} {input}'
+
