@@ -67,6 +67,7 @@ for id, contig in contigs.items():
             print(f"Error decoding JSON: {e}")
                 
 proteins_identified = 0
+protein_id = os.path.join(args.output, 'protein_id.txt')
 
 with open(args.tsv_file, "r") as fh:
     for line in fh:
@@ -79,16 +80,11 @@ with open(args.tsv_file, "r") as fh:
             orf = contig['orfs'][int(orf_id)]
             orf['protein_id'] = cols[1]
             proteins_identified += 1
-with open(log_file, "a") as fh: 
-    fh.write('MPS detection: # MPS=%d\n' % proteins_identified)
-if(args.verbose):
-    print(f'\tfound {proteins_identified} MPS')
-
+            
+with open(protein_id, "a") as fh:
+    fh.write(f'\tfound {proteins_identified} MPS\n')
 
 # parse protein score file
-if(args.verbose):
-    print('compute replicon distribution scores (RDS)...')
-
 marker_proteins = {}
 
 with open(args.mps, "r") as fh:
