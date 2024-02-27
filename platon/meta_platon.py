@@ -123,7 +123,8 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
     else:
         if(args.verbose):
             print(f'apply RDS sensitivity threshold (SNT={pc.RDS_SENSITIVITY_THRESHOLD:2.1f}) filter...')
-        scored_contigs = {k: v for (k, v) in contigs.items() if v.get('protein_score', 0) or v['protein_score'] >= pc.RDS_SENSITIVITY_THRESHOLD}
+
+        scored_contigs = {k: v.get('protein_score', 0) for (k, v) in contigs.items() if 'protein_score' not in v.keys() or v['protein_score'] >= pc.RDS_SENSITIVITY_THRESHOLD}
         no_excluded_contigs = len(contigs) - len(scored_contigs)
         log.info('RDS SNT filter: # discarded contigs=%d, # remaining contigs=%d' % (no_excluded_contigs, len(scored_contigs)))
         if(args.verbose):
