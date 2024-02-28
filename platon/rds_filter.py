@@ -115,17 +115,17 @@ for contig in contigs.values():
             score_sum += score
     if len(contig['orfs']) > 0: 
         contig['protein_score'] = score_sum / len(contig['orfs'])
-    with open(log_file, "a") as fh:
-        fh.write(
-            'contig RDS: contig=%s, RDS=%f, score-sum=%f, ORFs=%d\n' % 
-            (contig['id'], contig['protein_score'], score_sum, len(contig['orfs']))
-        )
-    with open(protein_score, "a") as fh:
-        fh.write(
-            'contig RDS: contig=%s, RDS=%f\n' % 
-            (contig['id'], contig['protein_score'])
-        )
-    
+        with open(log_file, "a") as fh:
+            fh.write(
+                'contig RDS: contig=%s, RDS=%f, score-sum=%f, ORFs=%d\n' % 
+                (contig['id'], contig['protein_score'], score_sum, len(contig['orfs']))
+            )
+        with open(protein_score, "a") as fh:
+            fh.write(
+                'contig RDS: contig=%s, RDS=%f\n' % 
+                (contig['id'], contig['protein_score'])
+            )
+        
 
 # filter contigs based on conservative protein score threshold
 # RDS_SENSITIVITY_THRESHOLD and execute per contig analyses in parallel
