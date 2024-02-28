@@ -113,7 +113,8 @@ for contig in contigs.values():
             orf['score'] = score
             orf['product'] = marker_protein['product']
             score_sum += score
-    contig['protein_score'] = score_sum / len(contig['orfs']) if len(contig['orfs']) > 0 
+    if len(contig['orfs']) > 0: 
+        contig['protein_score'] = score_sum / len(contig['orfs'])
     with open(log_file, "a") as fh:
         fh.write(
             'contig RDS: contig=%s, RDS=%f, score-sum=%f, ORFs=%d\n' % 
