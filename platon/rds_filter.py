@@ -43,7 +43,6 @@ try:
             'sequence': str(record.seq),
             'orfs': {},
         }
-        raw_contigs.append(contig)
         contigs[record.name] = contig
 except Exception as e:
     sys.exit(f'ERROR: {str(e)}')
