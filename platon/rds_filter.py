@@ -131,7 +131,7 @@ full_filtered_proteins_path = os.path.join(args.output, f"{args.name}_filtered.f
 for record in pyfastx.Fasta(str(proteins_path)):
     orf_name = str(record.name).split()[0]
     contig_id = orf_name.rsplit('_', 1)[0]
-    if contig_id in scored_contigs:  # Check if contig_id is in the list of selected names
+    if contig_id in contigs:  # Check if contig_id is in the list of selected names
         with open(full_filtered_proteins_path, "a") as ffh:
             ffh.write(f'>{orf_name}\n')
             ffh.write(f'{record.seq}\n')
@@ -140,7 +140,7 @@ for record in pyfastx.Fasta(str(proteins_path)):
 # write contig sequences to fasta files for subsequent parallel analyses
 full_filtered_contig_path = os.path.join(args.output, f"{args.name}_filtered.fasta")
 print(full_filtered_contig_path)
-for id, contig in scored_contigs.items():
+for id, contig in contigs.items():
     with open(full_filtered_contig_path, "a") as ffh:
         ffh.write(f">{contig['id']}\n")
         ffh.write(f"{contig['sequence']}\n")
