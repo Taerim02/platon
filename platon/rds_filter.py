@@ -33,7 +33,7 @@ log_file = os.path.join(f'{args.name}.log')
 protein_score_file = os.path.join(args.output, f'{file_name}_protein_score.txt')
 
 contigs = {}
-raw_contigs = []
+
 try:
     for record in pyfastx.Fasta(str(args.fasta_file)):
         length = len(record.seq)
@@ -96,11 +96,7 @@ with open(args.mps, "r") as fh:
             'length': cols[2],
             'score': float(cols[3]),
         }
-        
-if not os.path.exists('tmp/protein_score'):
-    os.mkdir('tmp/protein_score')
     
-
 protein_score = os.path.join(args.output, f'protein_score/{file_name}_protein_score.txt')
 
 # calculate protein score per contig
@@ -126,22 +122,6 @@ for contig in contigs.values():
                 (contig['id'], contig['protein_score'])
             )
         
-
-# filter contigs based on conservative protein score threshold
-# RDS_SENSITIVITY_THRESHOLD and execute per contig analyses in parallel
-scored_contigs = None
-if(args.characterize):
-    scored_contigs = contigs
-else:
-    if(args.verbose):
-        print(f'apply RDS sensitivity threshold (SNT={pc.RDS_SENSITIVITY_THRESHOLD:2.1f}) filter...')
-    scored_contigs = {k: v for (k, v) in contigs.items() if v['protein_score'] >= pc.RDS_SENSITIVITY_THRESHOLD}
-    no_excluded_contigs = len(contigs) - len(scored_contigs)
-    with open(log_file, "a") as fh: 
-        fh.write('RDS SNT filter: # discarded contigs=%d, # remaining contigs=%d' % (no_excluded_contigs, len(scored_contigs)))
-    if(args.verbose):
-        print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
-
 
 proteins_path = os.path.join(args.output, f'protein/{file_name}_proteins.faa')
 
