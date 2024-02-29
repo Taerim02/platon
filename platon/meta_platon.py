@@ -117,7 +117,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
                     contigs[contig_id]['protein_score']= float(match.group(2))
                        
                   
-    scored_contigs = None
+    scored_contigs = {}
     if(args.characterize):
         scored_contigs = contigs
     else:
