@@ -124,9 +124,9 @@ def faa_into_chunk_contigs(contig_size, output_path):
     current_size = 0
     i = 0
     name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
-    protein_files = os.listdir(output_path.joinpath('tmp/protein'))
+    protein_files = os.listdir(output_path.joinpath(f'{output_path}/tmp/protein'))
     for file in protein_files:
-      for record in pyfastx.Fasta(os.path.join(output_path.joinpath('tmp/protein'), file)):
+      for record in pyfastx.Fasta(os.path.join(output_path.joinpath(f'{output_path}/tmp/protein'), file)):
           orf_name = str(record.name).split()[0]
           contig_sequence = str(record.seq)
           contig_length = len(record.seq)
@@ -136,7 +136,7 @@ def faa_into_chunk_contigs(contig_size, output_path):
               current_size += contig_length
           else:
               i += 1
-              contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.faa')
+              contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
               with open(contig_file_path, 'w') as contig_file:
                   for saved_contig in contigs_to_save:
                       contig_file.write(f">{saved_contig['orf_name']}\n")
@@ -147,7 +147,7 @@ def faa_into_chunk_contigs(contig_size, output_path):
     # Handle the last batch of contigs
     if contigs_to_save:
         i += 1
-        contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.faa')
+        contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
         with open(contig_file_path, 'w') as contig_file:
             for saved_contig in contigs_to_save:
                 contig_file.write(f">{saved_contig['orf_name']}\n")
