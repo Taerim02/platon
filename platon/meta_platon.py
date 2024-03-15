@@ -133,6 +133,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
         log.info('RDS SNT filter: # discarded contigs=%d, # remaining contigs=%d' % (no_excluded_contigs, len(scored_contigs)))
         if(args.verbose):
             print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
+            print('characterize contigs...')
 
     # divide a fasta file and a faa file into chunks according to the default contig size.            
     pf.fasta_into_chunk_contigs(scored_contigs, pc.DEFAULT_CONTIG_SIZE, output_path)
