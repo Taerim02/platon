@@ -127,7 +127,7 @@ $ cp -r db/ <platon-installation-dir>
 Usage:
 
 ```bash
-usage: platon [--db DB] [--prefix PREFIX] [--output OUTPUT] [--mode {sensitivity,accuracy,specificity}] [--characterize] [--meta] [--help] [--verbose] [--threads THREADS] [--version] <genome>
+usage: platon [--db DB] [--prefix PREFIX] [--output OUTPUT] [--mode {sensitivity,accuracy,specificity}] [--characterize] [--module {genomic, metagenomic}] [--help] [--verbose] [--threads THREADS] [--version] <genome>
 
 Identification and characterization of bacterial plasmid contigs from short-read draft assemblies.
 
@@ -143,7 +143,8 @@ Workflow:
   --mode {sensitivity,accuracy,specificity}, -m {sensitivity,accuracy,specificity}
                         applied filter mode: sensitivity: RDS only (>= 95% sensitivity); specificity: RDS only (>=99.9% specificity); accuracy: RDS & characterization heuristics (highest accuracy) (default = accuracy)
   --characterize, -c    deactivate filters; characterize all contigs
-  --meta                use metagenome gene prediction mode
+  --module              choose a module between genomic and metagenomic
+(default = genomic)
 
 General:
   --help, -h            Show this help message and exit
