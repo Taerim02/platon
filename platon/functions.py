@@ -119,38 +119,40 @@ def fasta_into_chunk_contigs(contigs, contig_size, output_path):
     return
 
 
-def fasta_into_chunk(fasta_file, contig_size):
+def faa_into_chunk_contigs(contig_size, output_path):
     contigs_to_save = []
     current_size = 0
     i = 0
     name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
-    for record in pyfastx.Fasta(str(fasta_file)):
-        contig_name = record.name
-        contig_sequence = str(record.seq)
-        contig_length = len(record.seq)
-        
-        if current_size + contig_length <= contig_size:
-            contigs_to_save.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
-            current_size += contig_length
-        else:
-            i += 1
-            contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.fasta')
-            with open(contig_file_path, 'w') as contig_file:
-                for saved_contig in contigs_to_save:
-                    contig_file.write(f">{saved_contig['contig_name']}\n")
-                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
-            contigs_to_save = []
-            current_size = 0
+    protein_files = os.listdir(output_path.joinpath('tmp/protein'))
+    for file in protein_files:
+      for record in pyfastx.Fasta(os.path.join(output_path.joinpath('tmp/protein'), file)):
+          orf_name = str(record.name).split()[0]
+          contig_sequence = str(record.seq)
+          contig_length = len(record.seq)
+          
+          if current_size + contig_length <= contig_size:
+              contigs_to_save.append({'orf_name': orf_name, 'contig_sequence': contig_sequence})
+              current_size += contig_length
+          else:
+              i += 1
+              contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.faa')
+              with open(contig_file_path, 'w') as contig_file:
+                  for saved_contig in contigs_to_save:
+                      contig_file.write(f">{saved_contig['orf_name']}\n")
+                      contig_file.write(f"{saved_contig['contig_sequence']}\n")
+              contigs_to_save = []
+              current_size = 0
     
     # Handle the last batch of contigs
     if contigs_to_save:
         i += 1
-        contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.fasta')
+        contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.faa')
         with open(contig_file_path, 'w') as contig_file:
             for saved_contig in contigs_to_save:
-                contig_file.write(f">{saved_contig['contig_name']}\n")
+                contig_file.write(f">{saved_contig['orf_name']}\n")
                 contig_file.write(f"{saved_contig['contig_sequence']}\n")
-    return           
+    return
                 
 def test_circularity(contig):
     """Test if this contig can be circularized."""
