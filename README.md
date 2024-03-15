@@ -89,12 +89,15 @@ $ python3 -m pip install --user cb-platon
 
 Platon requires the following 3rd party executables which must be installed & executable:
 
-- Prodigal (2.6.3) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648> <https://github.com/hyattpd/Prodigal>
+- Pyfastx (1.1.0) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2848648> <https://github.com/lmdu/pyfastx>
+- Pyrodigal (3.3.0) <https://joss.theoj.org/papers/10.21105/joss.04296> 
+<https://github.com/althonos/pyrodigal>
 - Diamond (2.0.6) <https://pubmed.ncbi.nlm.nih.gov/25402007> <http://www.diamondsearch.org>
 - Blast+ (2.10.1) <https://www.ncbi.nlm.nih.gov/pubmed/2231712> <https://blast.ncbi.nlm.nih.gov>
 - MUMmer (4.0.0-beta2) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC395750/> <https://github.com/gmarcais/mummer>
-- HMMER (3.3.1) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3695513/> <http://hmmer.org/>
+- Pyhmmer (0.10.0) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3695513> <http://hmmer.org>
 - INFERNAL (1.1.4) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3810854> <http://eddylab.org/infernal>
+- Snakemake (7.30.1) <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3810854> <https://snakemake.github.io> 
 
 ### Database download
 
