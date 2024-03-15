@@ -38,9 +38,6 @@ def run_command(cmd, env=False):
     )
     return proc
 
-def delete_empty_file(file_path):
-    if os.path.isfile(file_path) and os.path.getsize(file_path) == 0:
-        os.remove(file_path)
 
 def proc_error(var, var_error, proc, cmd, contig):
     if(proc.returncode != 0):
@@ -56,45 +53,73 @@ def proc_error(var, var_error, proc, cmd, contig):
 
 
 def contigs_into_chunks(contigs, contig_size, output_path):
-    contigs_to_save = []
+    current_list = []
     current_size = 0
-    i = 0
+    i = 1
     name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
-    
-    for contig in contigs.values():
+    for id, contig in contigs.items():
         contig_name = contig['id']
         contig_sequence = contig['sequence']
         contig_length = contig['length']
         
-        if current_size + contig_length <= contig_size:
-            contigs_to_save.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
-            current_size += contig_length
-        else:
-            i += 1
+        current_list.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
+        current_size += contig_length
+        
+        if current_size >= contig_size:
             contig_file_path = os.path.join(f'{output_path}/tmp/chunk', f'{name}_{i}.fasta')
-            with open(contig_file_path, 'w') as contig_file:
-                for saved_contig in contigs_to_save:
+            with open(contig_file_path, 'a') as contig_file:
+                for saved_contig in current_list:
                     contig_file.write(f">{saved_contig['contig_name']}\n")
                     contig_file.write(f"{saved_contig['contig_sequence']}\n")
-            contigs_to_save = []
+            current_list = []
             current_size = 0
+            i += 1 
     
     # Handle the last batch of contigs
-    if contigs_to_save:
+    if len(current_list) > 0:
         i += 1
         contig_file_path = os.path.join(f'{output_path}/tmp/chunk', f'{name}_{i}.fasta')
-        with open(contig_file_path, 'w') as contig_file:
-            for saved_contig in contigs_to_save:
+        with open(contig_file_path, 'a') as contig_file:
+            for saved_contig in current_list:
+                contig_file.write(f">{saved_contig['contig_name']}\n")
+                contig_file.write(f"{saved_contig['contig_sequence']}\n")
+    return
+    
+def fasta_into_chunk_contigs(contigs, contig_size, output_path):
+    current_list = []
+    current_size = 0
+    i = 1
+    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
+    for id, contig in contigs.items():
+        contig_name = contig['id']
+        contig_sequence = contig['sequence']
+        contig_length = contig['length']
+        
+        current_list.append({'contig_name': contig_name, 'contig_sequence': contig_sequence})
+        current_size += contig_length
+        
+        if current_size >= contig_size:
+            contig_file_path = os.path.join(f'{output_path}/tmp',  f'{name}_{i}_filtered.fasta')
+            with open(contig_file_path, 'a') as contig_file:
+                for saved_contig in current_list:
+                    contig_file.write(f">{saved_contig['contig_name']}\n")
+                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
+            current_list = []
+            current_size = 0
+            i += 1 
+    
+    # Handle the last batch of contigs
+    if len(current_list) > 0:
+        i += 1
+        contig_file_path = os.path.join(f'{output_path}/tmp',  f'{name}_{i}_filtered.fasta')
+        with open(contig_file_path, 'a') as contig_file:
+            for saved_contig in current_list:
                 contig_file.write(f">{saved_contig['contig_name']}\n")
                 contig_file.write(f"{saved_contig['contig_sequence']}\n")
     return
 
-def delete_contig_files(i_list):
-    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
-    for i in i_list:
-        os.remove(os.path.join(cfg.output_path, f'{name}_{i}.fasta'))
 
-def fasta_into_chunk(fasta_file, contig_size, output_path):
+def fasta_into_chunk(fasta_file, contig_size):
     contigs_to_save = []
     current_size = 0
     i = 0
@@ -109,7 +134,7 @@ def fasta_into_chunk(fasta_file, contig_size, output_path):
             current_size += contig_length
         else:
             i += 1
-            contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.fasta')
+            contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.fasta')
             with open(contig_file_path, 'w') as contig_file:
                 for saved_contig in contigs_to_save:
                     contig_file.write(f">{saved_contig['contig_name']}\n")
@@ -120,45 +145,13 @@ def fasta_into_chunk(fasta_file, contig_size, output_path):
     # Handle the last batch of contigs
     if contigs_to_save:
         i += 1
-        contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.fasta')
+        contig_file_path = os.path.join(f'{cfg.output_path}/tmp', f'{name}_{i}_filtered.fasta')
         with open(contig_file_path, 'w') as contig_file:
             for saved_contig in contigs_to_save:
                 contig_file.write(f">{saved_contig['contig_name']}\n")
                 contig_file.write(f"{saved_contig['contig_sequence']}\n")
-
-def faa_into_chunk(faa_file, contig_size, output_path):
-    contigs_to_save = []
-    current_size = 0
-    i = 0
-    name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
-    for record in pyfastx.Fasta(str(faa_file)):
-        orf_name = str(record.name).split()[0]
-        contig_sequence = str(record.seq)
-        contig_length = len(record.seq)
-        
-        if current_size + contig_length <= contig_size:
-            contigs_to_save.append({'orf_name': orf_name, 'contig_sequence': contig_sequence})
-            current_size += contig_length
-        else:
-            i += 1
-            contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
-            with open(contig_file_path, 'w') as contig_file:
-                for saved_contig in contigs_to_save:
-                    contig_file.write(f">{saved_contig['orf_name']}\n")
-                    contig_file.write(f"{saved_contig['contig_sequence']}\n")
-            contigs_to_save = []
-            current_size = 0
-    
-    # Handle the last batch of contigs
-    if contigs_to_save:
-        i += 1
-        contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
-        with open(contig_file_path, 'w') as contig_file:
-            for saved_contig in contigs_to_save:
-                contig_file.write(f">{saved_contig['orf_name']}\n")
-                contig_file.write(f"{saved_contig['contig_sequence']}\n")
-
-
+    return           
+                
 def test_circularity(contig):
     """Test if this contig can be circularized."""
     contig_split_position = int(contig['length'] / 2)
@@ -576,7 +569,6 @@ def search_mobilization_genes_py(contigs, filteredProteinsPath):
         log.info('mob genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['mobilization_hits']))
     return
 
-
 def search_conjugation_genes_py(contigs, filteredProteinsPath):
     """Search for conjugation genes."""
     hits_set = set()
@@ -620,6 +612,7 @@ def extract_function_info(contigs:dict, txt_file:str, index:str, output_path):
                       dict_string = "{" + match.group(2) + "}"
                       dict_value = ast.literal_eval(dict_string)
                       contigs[contig_id][index].append(dict_value)
+    return
                           
 def extract_function_info_hmm(contigs:dict, txt_file:str, index:str, output_path):          
     function_pattern = r"id: ([a-zA-Z0-9_.]+) orf_id: (\d+) \{(.+)\}"
@@ -640,4 +633,5 @@ def extract_function_info_hmm(contigs:dict, txt_file:str, index:str, output_path
                     }
                 merged_dict = merge_dicts(dict_value, orf_dict)
                 contigs[contig_id][index].append(merged_dict)
+    return
                     
