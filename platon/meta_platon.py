@@ -134,14 +134,9 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
         if(args.verbose):
             print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
 
-    # divide a fasta file and a faa file into chunks according to the default contig size.    
-    name = pf.get_base_name(cfg.genome_path)
-        
-    full_filtered_contig_path = os.path.join(output_path.joinpath('tmp'), f"{name}_filtered.fasta")
-    pf.fasta_into_chunk(full_filtered_contig_path, pc.DEFAULT_CONTIG_SIZE, output_path)
-    
-    full_filtered_proteins_path = os.path.join(output_path.joinpath('tmp'), f"{name}_filtered.faa")
-    pf.faa_into_chunk(full_filtered_proteins_path, pc.DEFAULT_CONTIG_SIZE, output_path)
+    # divide a fasta file and a faa file into chunks according to the default contig size.            
+    pf.fasta_into_chunk_contigs(scored_contigs, pc.DEFAULT_CONTIG_SIZE, output_path)
+    pf.faa_into_chunk_contigs(pc.DEFAULT_CONTIG_SIZE, output_path)
 
     # the first Snakemake session starts for non-characsteristic part.  
     result2 = snakemake(
