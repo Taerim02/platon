@@ -7,7 +7,6 @@ import argparse
 import pandas as pd
 import json
 
-import constants as pc
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") 
 parser.add_argument("fasta_file", help="Input FASTA file")
@@ -18,6 +17,7 @@ parser.add_argument("--name", help="Output directory")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
 parser.add_argument("--verbose", help="Enable verbose output")
+parser.add_argument("--min", help="minimum protein identity")
 
 args = parser.parse_args()
 
@@ -74,7 +74,7 @@ with open(args.tsv_file, "r") as fh:
         locus = cols[0].rpartition('_')
         contig_id = locus[0]
         orf_id = locus[2]
-        if((float(cols[2]) >= pc.MIN_PROTEIN_IDENTITY) and (contig_id in contigs)):
+        if((float(cols[2]) >= args.min) and (contig_id in contigs)):
             contig = contigs[contig_id]
             orf = contig['orfs'][int(orf_id)]
             orf['protein_id'] = cols[1]
