@@ -34,6 +34,7 @@ setup(
         ]
     },
     classifiers=[
+        'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
