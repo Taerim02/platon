@@ -4,8 +4,9 @@ import subprocess as sp
 import pyfastx
 import argparse
 
-import config as cfg
-import constants as pc
+import platon
+import platon.config as cfg
+import platon.constants as pc
 
 parser = argparse.ArgumentParser(description="Process FASTA file for determine circularity")
 parser.add_argument("fasta_file", help="Input FASTA file")
