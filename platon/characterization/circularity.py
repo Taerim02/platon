@@ -13,7 +13,7 @@ parser.add_argument("--name", help="original fasta file name for generating a lo
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
 parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
-parser.add_argument("--min", help="minimum circular basepairoverlap")
+parser.add_argument("--min", help="minimum circular basepair overlap")
 
 args = parser.parse_args()
 file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
