@@ -143,7 +143,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
     result2 = snakemake(
         snakefile="platon/snakefiles/Snakefile2",
         workdir=output_path,
-        config={"current_path": Path.cwd()},
+        config={"current_path": Path.cwd(), "min_circ_basepair_overlap":pc.MIN_CIRC_BASEPAIR_OVERLAP},
         cores=cfg.threads, scheduler="greedy",
     )
     
