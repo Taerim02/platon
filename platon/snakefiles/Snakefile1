@@ -9,6 +9,7 @@ import platon.functions as pf
 
 
 current_path = config["current_path"]
+min_protein_identity = config["min_protein_identity"]
 
 all_file_paths = glob.glob("tmp/chunk/*.fasta")
 
@@ -83,5 +84,5 @@ rule rds_filter:
         name = file_name,
         verbose = cfg.verbose
     shell:         
-        'python {current_path}/platon/rds_filter.py --verbose {params.verbose} --name {params.name} --mps {params.mps} --output {params.outdir} {input}'
+        'python {current_path}/platon/rds_filter.py --verbose {params.verbose} --name {params.name} --mps {params.mps} --output {params.outdir} --min {min_protein_identity} {input}'
 
