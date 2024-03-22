@@ -43,7 +43,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
 
     # the first Snakemake session starts for non-characsteristic part.    
     result1 = snakemake(
-        snakefile="platon/Snakefile1",
+        snakefile="platon/snakefiles/Snakefile1",
         workdir=output_path,
         config={"current_path": Path.cwd()},
         cores=cfg.threads, 
@@ -141,7 +141,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
 
     # the first Snakemake session starts for non-characsteristic part.  
     result2 = snakemake(
-        snakefile="platon/Snakefile2",
+        snakefile="platon/snakefiles/Snakefile2",
         workdir=output_path,
         config={"current_path": Path.cwd()},
         cores=cfg.threads, scheduler="greedy",
