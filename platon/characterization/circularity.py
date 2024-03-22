@@ -13,6 +13,7 @@ parser.add_argument("--name", help="original fasta file name for generating a lo
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
 parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+parser.add_argument("--min", help="minimum circular basepairoverlap")
 
 args = parser.parse_args()
 file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
@@ -92,7 +93,7 @@ for id, contig in scored_contigs.items():
                     alignment_a = end_a - start_a + 1
                     alignment_b = end_b - start_b + 1
                     if(alignment_a == alignment_b
-                            and alignment_a > pc.MIN_CIRC_BASEPAIR_OVERLAP
+                            and alignment_a > int(args.min)
                             and (mismatches / alignment_a) < 0.05
                             and end_b == len(contig_fragment_b_seq)
                             and start_a == 1):
