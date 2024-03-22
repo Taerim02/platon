@@ -74,7 +74,7 @@ with open(args.tsv_file, "r") as fh:
         locus = cols[0].rpartition('_')
         contig_id = locus[0]
         orf_id = locus[2]
-        if((float(cols[2]) >= args.min) and (contig_id in contigs)):
+        if((float(cols[2]) >= float(args.min)) and (contig_id in contigs)):
             contig = contigs[contig_id]
             orf = contig['orfs'][int(orf_id)]
             orf['protein_id'] = cols[1]
