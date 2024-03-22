@@ -45,7 +45,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
     result1 = snakemake(
         snakefile="platon/snakefiles/Snakefile1",
         workdir=output_path,
-        config={"current_path": Path.cwd()},
+        config={"current_path": Path.cwd(), "min_protein_identity": pc.MIN_PROTEIN_IDENTITY},
         cores=cfg.threads, 
     )
     '''
