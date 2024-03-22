@@ -4,8 +4,6 @@ import subprocess as sp
 import pyfastx
 import argparse
 
-import platon.constants as pc
-
 parser = argparse.ArgumentParser(description="Process FASTA file for determine circularity")
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("--tmpdir", nargs='?', default=os.getcwd(), help="Output directory")
