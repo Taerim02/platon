@@ -51,7 +51,7 @@ rule orfs_find:
         name = file_name,
         verbose = cfg.verbose
     shell:
-        'python {current_path}/platon/orfs_find.py {input.fasta_file} --verbose {params.verbose} --name {params.name} --output {params.outdir}'
+        'python {current_path}/platon/non-characterization/orfs_find.py {input.fasta_file} --verbose {params.verbose} --name {params.name} --output {params.outdir}'
 
 
 
@@ -83,5 +83,5 @@ rule rds_filter:
         name = file_name,
         verbose = cfg.verbose
     shell:         
-        'python {current_path}/platon/rds_filter.py --verbose {params.verbose} --name {params.name} --mps {params.mps} --output {params.outdir} {input}'
+        'python {current_path}/platon/non-characterization/rds_filter.py --verbose {params.verbose} --name {params.name} --mps {params.mps} --output {params.outdir} {input}'
 
