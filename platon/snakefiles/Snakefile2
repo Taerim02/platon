@@ -11,6 +11,7 @@ import platon.functions as pf
 main_fasta_file = cfg.genome_path
 file_name = pf.get_base_name(main_fasta_file)
 current_path = config["current_path"]
+min_circ_basepair_overlap = config["min_circ_basepair_overlap"]
 
 # Define the regular expression pattern
 pattern_faa = r'(.+)_(\d+)_filtered.faa$'
@@ -130,7 +131,7 @@ rule test_circularity:
         tmpdir = str(cfg.tmp_path),
         name = file_name
     shell: 
-        'python {current_path}/platon/characterization/circularity.py --name {params.name} --tmpdir {params.tmpdir} --output {output.cir} {input.fasta_file}'
+        'python {current_path}/platon/characterization/circularity.py --name {params.name} --tmpdir {params.tmpdir} --output {output.cir} --min {min_circ_basepair_overlap} {input.fasta_file}'
 
 
 
