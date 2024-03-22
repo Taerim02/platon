@@ -6,6 +6,8 @@ import pyfastx
 import argparse
 import pandas as pd
 import json
+
+import platon
 import platon.constants as pc
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") 
