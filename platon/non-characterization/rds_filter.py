@@ -7,7 +7,7 @@ import argparse
 import pandas as pd
 import json
 
-import platon.constants as pc
+import ..constants as pc
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") 
 parser.add_argument("fasta_file", help="Input FASTA file")
