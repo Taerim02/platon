@@ -18,12 +18,9 @@ parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output dir
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
 parser.add_argument("--verbose", help="Enable verbose output")
 parser.add_argument("--min", help="minimum protein identity")
-
 args = parser.parse_args()
 
-def get_base_name(file_name):
-    return os.path.splitext(os.path.basename(file_name))[0]
-file_name = get_base_name(str(args.fasta_file))
+file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
 
 pattern = r'_(\d+)\.fasta'
 match = re.search(pattern, args.fasta_file)
