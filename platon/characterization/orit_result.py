@@ -1,5 +1,6 @@
 import os
 import argparse
+import csv
 
 parser = argparse.ArgumentParser(description="Process FASTA file for OriT detection")
 parser.add_argument("orit_output", help="Input FASTA file")
