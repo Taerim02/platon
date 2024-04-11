@@ -80,7 +80,7 @@ rule search_amr_genes:
     params:
         db_path = cfg.db_path.joinpath('ncbifam-amr'),
     shell:
-        'python {current_path}/characterization/amr.py --db_path {params.db_path} --output {output.amr} {input.faa_file}'
+        'python {current_path}/platon/characterization/amr.py --db_path {params.db_path} --output {output.amr} {input.faa_file}'
 
 
 rule search_replication_genes: 
@@ -91,7 +91,7 @@ rule search_replication_genes:
     params:
         db_path = cfg.db_path.joinpath('replication')
     shell:
-        'python {current_path}/characterization/rep.py --db_path {params.db_path} --output {output.rep} {input.faa_file}'
+        'python {current_path}/platon/characterization/rep.py --db_path {params.db_path} --output {output.rep} {input.faa_file}'
 
 
 rule search_mobilization_genes:
@@ -102,7 +102,7 @@ rule search_mobilization_genes:
     params:
         db_path = cfg.db_path.joinpath('mobilization')
     shell:
-        'python {current_path}/characterization/mob.py --db_path {params.db_path} --output {output.mob} {input.faa_file}'
+        'python {current_path}/platon/characterization/mob.py --db_path {params.db_path} --output {output.mob} {input.faa_file}'
 
 rule search_conjugation_genes:
     input:
@@ -112,7 +112,7 @@ rule search_conjugation_genes:
     params:
         db_path = cfg.db_path.joinpath('conjugation'),
     shell:
-        'python {current_path}/characterization/conj.py --db_path {params.db_path} --output {output.conj} {input.faa_file}'
+        'python {current_path}/platon/characterization/conj.py --db_path {params.db_path} --output {output.conj} {input.faa_file}'
 
 
 rule test_circularity:
@@ -123,7 +123,7 @@ rule test_circularity:
     params:
         tmpdir = str(cfg.tmp_path),
     shell: 
-        'python {current_path}/characterization/circularity.py --tmpdir {params.tmpdir} --output {output.cir} --min {min_circ_basepair_overlap} {input.fasta_file}'
+        'python {current_path}/platon/characterization/circularity.py --tmpdir {params.tmpdir} --output {output.cir} --min {min_circ_basepair_overlap} {input.fasta_file}'
 
 
 
@@ -145,7 +145,7 @@ rule search_rrnas:
         {params.db_path} \
         {input.fasta_file} > tmp/rrnas/output.txt
 
-        python {current_path}/characterization/rrnas_result.py --output {output.rrnas} {params.rrnas} 
+        python {current_path}/platon/characterization/rrnas_result.py --output {output.rrnas} {params.rrnas} 
         """
         
 rule search_inc_type:
@@ -167,7 +167,7 @@ rule search_inc_type:
         -outfmt '6 qseqid sseqid sstart send sstrand pident qcovs bitscore' \
         -out {params.inc}
 
-        python {current_path}/characterization/inc_result.py --output {output.inc} {params.inc}
+        python {current_path}/platon/characterization/inc_result.py --output {output.inc} {params.inc}
         """
 
 rule search_orit_sequences:
@@ -190,7 +190,7 @@ rule search_orit_sequences:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.orit}
 
-        python {current_path}/characterization/orit_result.py --output {output.orit} {params.orit}
+        python {current_path}/platon/characterization/orit_result.py --output {output.orit} {params.orit}
         """
 
 rule search_reference_plasmids:  
@@ -212,7 +212,7 @@ rule search_reference_plasmids:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.ref}
 
-        python {current_path}/characterization/ref_result.py --output {output.ref} {input.contig_file} {params.ref}
+        python {current_path}/platon/characterization/ref_result.py --output {output.ref} {input.contig_file} {params.ref}
         """
 
 rule integrate_amr_files:
