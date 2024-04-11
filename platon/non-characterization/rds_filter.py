@@ -66,7 +66,7 @@ with open(protein_id, "a") as fh:
     is_empty = fh.tell() == 0
     if is_empty:
         writer.writeheader()
-    tsv_row = {'mps':proteins_identified}
+    tsv_row = {'mps':int(proteins_identified)}
     writer.writerow(tsv_row)
 
 
