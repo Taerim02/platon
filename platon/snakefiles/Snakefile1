@@ -44,7 +44,7 @@ rule find_orfs:
     params:
         verbose = cfg.verbose
     shell:
-        'python non-characterization/orfs_find.py --verbose {params.verbose} {input.fasta_file}' 
+        'python {current_path}/non-characterization/orfs_find.py --verbose {params.verbose} {input.fasta_file}' 
 
 
 
