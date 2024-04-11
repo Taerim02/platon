@@ -43,7 +43,7 @@ def main(raw_contigs, contigs, args, log, output_path):
 
     if result1:
         if(args.verbose):
-                print("Workflow for non-characterization completed successfully!")
+            print("Workflow for non-characterization completed successfully!")
         log.info("Workflow for non-characterization completed.")
     else:
         if(args.verbose):
@@ -94,7 +94,7 @@ def main(raw_contigs, contigs, args, log, output_path):
       
     # Calculate total number of MPS
     no_mps = 0
-    with open(output_path.joinpath("tmp/mps/protein_id.tsv"),"r") as fh:
+    with open(output_path.joinpath("tmp/mps/protein_id.tsv"), "r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             print(row["mps"])
