@@ -36,15 +36,14 @@ rule all:
 rule find_orfs:
     input:
         fasta_file="tmp/chunk/{file_name}_{i}.fasta", 
-    
     output:
         proteins_path="tmp/protein/{file_name}_{i}_proteins.faa",
         orf_tsv = "tmp/orf/{file_name}_{i}_orf.tsv",
-
     params:
+        outdir='tmp',
         verbose = cfg.verbose
     shell:
-        'python {current_path}/non-characterization/orfs_find.py --verbose {params.verbose} {input.fasta_file}' 
+        'python {current_path}/non-characterization/orfs_find.py --verbose {params.verbose} --output {params.outdir} {input.fasta_file}' 
 
 
 
