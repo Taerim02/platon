@@ -6,14 +6,14 @@ import csv
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
+parser.add_argument("--name", help="original fasta file name for generating a log file")
+parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument("--verbose", help="Enable verbose output")
+
+
 args = parser.parse_args()
 
 file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
-
-pattern = r'_(\d+)\.fasta'
-match = re.search(pattern, args.fasta_file)
-match = match.group(1)
 
 contigs = {}
 try:
@@ -58,9 +58,11 @@ for record in pyfastx.Fasta(str(args.fasta_file)):
                         writer.writeheader()
                     tsv_row = {"contig":contig["id"], "start":orf["start"], "end":orf["end"], "strand":orf["strand"], "id":orf["id"]}
                     writer.writerow(tsv_row)
+                    
 
 # Check if proteins_path file was created
 if not os.path.exists(proteins_path):  
     sys.exit('Error: ORF prediction failed!')
+
 
 
