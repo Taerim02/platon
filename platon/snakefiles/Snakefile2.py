@@ -68,8 +68,8 @@ fasta = ["cir", "rrnas", "orit", "inc", "ref"]
 
 rule all:
     input:
-        'tmp/function/amr.tsv', 'tmp/function/rep.tsv' , 'tmp/function/mob.tsv' ,'tmp/function/conj.tsv' ,'tmp/function/ref.tsv' ,
-        'tmp/function/cir.tsv' ,'tmp/function/inc.tsv' ,'tmp/function/orit.tsv' , 'tmp/function/rrnas.tsv'
+        'tmp/function/amr.tsv', 'tmp/function/rep.tsv', 'tmp/function/mob.tsv','tmp/function/conj.tsv','tmp/function/ref.tsv',
+        'tmp/function/cir.tsv','tmp/function/inc.tsv','tmp/function/orit.tsv', 'tmp/function/rrnas.tsv'
 
 
 rule search_amr_genes:
