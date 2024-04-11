@@ -150,10 +150,10 @@ def main():
         sys.exit(0)
     
     if cfg.metagenome:
-        import meta_platon as meta_platon
+        import platon.meta_platon as meta_platon
         raw_contigs, contigs, filtered_contigs = meta_platon.main(raw_contigs, contigs, args, log, output_path)
     else:
-        import single_platon as single_platon
+        import platon.single_platon as single_platon
         raw_contigs, contigs, filtered_contigs = single_platon.main(raw_contigs, contigs, args, log, output_path)
     
     # write comprehensive results to JSON file
