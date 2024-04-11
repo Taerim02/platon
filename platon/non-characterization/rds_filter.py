@@ -36,9 +36,6 @@ except Exception as e:
     sys.exit(f'ERROR: {str(e)}')
 
 with open(args.orf_file, "r") as orf_file:
-    orf_lines = orf_file.readlines()
-
-with open(args.orf_file, "r") as orf_file:
     reader = csv.DictReader(orf_file, delimiter="\t")
     for row in reader:
         if row["contig"] in contigs:
