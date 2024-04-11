@@ -97,8 +97,8 @@ def main(raw_contigs, contigs, args, log, output_path):
     with open(output_path.joinpath("tmp/mps/protein_id.tsv"), "r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
-            print(row["mps"])
-            no_mps += int(row["mps"])
+            if isnumeric(row["mps"]):
+                no_mps += int(row["mps"])
     
     if(args.verbose):
         print(f'\tfound {no_mps} MPS')
