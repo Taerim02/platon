@@ -11,8 +11,6 @@ import platon
 import platon.__init__ as init
 import platon.constants as pc
 
-#print(init.__version__)
-
 
 log = logging.getLogger('UTILS')
 Version = collections.namedtuple('Version', ['major', 'minor', 'patch'], defaults=[0, 0]) # named tuple for version checking, defaults are zero for missing minor/patch
@@ -31,8 +29,8 @@ DEPENDENCIES = [  # List of dependencies: tuples for: min version, max version, 
     (Version(4,0,0), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('nucmer', '-V')),
     (Version(1,1,2), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('cmscan', '-h')),
     (Version(3,2,1), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('pyrodigal', '-V')),
-    #(Version(1,1,0), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('pyfastx', '-version')),
-    #(Version(0,10,0), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('pyhmmer', '-V')),
+    (Version(1,1,0), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('pyfastx', '-version')),
+    (Version(0,10,0), Version(VERSION_MAX_DIGIT, VERSION_MAX_DIGIT, VERSION_MAX_DIGIT), VERSION_REGEX, ('pyhmmer', '-V')),
 ]
 
 
@@ -51,10 +49,9 @@ def parse_arguments():
     arg_group_io.add_argument('--output', '-o', action='store', default=os.getcwd(), help='Output directory (default = current working directory)')
     
     arg_group_workflow = parser.add_argument_group('Workflow')
-    arg_group_workflow.add_argument('--module', '-u', action='store', type=str, choices=['single', 'metagenomic'], default='single', help = 'use single or metagenome gene prediction mode')
     arg_group_workflow.add_argument('--mode', '-m', action='store', type=str, choices=['sensitivity', 'accuracy', 'specificity'], default='accuracy', help='applied filter mode: sensitivity: RDS only (>= 95%% sensitivity); specificity: RDS only (>=99.9%% specificity); accuracy: RDS & characterization heuristics (highest accuracy) (default = accuracy)')
     arg_group_workflow.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
-    #arg_group_workflow.add_argument('--meta', action='store_true', help='use metagenome gene prediction mode')
+    arg_group_workflow.add_argument('--meta', action='store_true', help='use metagenome gene prediction mode')
     
     arg_group_general = parser.add_argument_group('General')
     arg_group_general.add_argument('--help', '-h', action='help', help='Show this help message and exit')

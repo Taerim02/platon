@@ -1,21 +1,18 @@
 import functools as ft
-import json
-import logging
-import os, sys, re
+import sys
 import shutil
 import subprocess as sp
 from concurrent.futures import ThreadPoolExecutor
 import pyfastx
 
 import platon
-import platon.db as db
 import platon.config as cfg
 import platon.constants as pc
 import platon.functions as pf
 
 
 
-def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
+def main(raw_contigs, contigs, args, log, output_path):
     '''
     This is the genomic module of platon, which is the default module.
     '''
@@ -28,7 +25,7 @@ def main(raw_contigs, contigs, filtered_contigs, args, log, output_path):
     
     """Predict open reading frames with Pyrodigal."""
     genome_size = sum([v['length'] for k, v in contigs.items()])
-    pyrodigal_metamode = (cfg.module == 'metagenomic') or (cfg.characterize and genome_size < 50000)
+    pyrodigal_metamode =  cfg.characterize and genome_size < 50000
     training_info = pf.train_gene_prediction(contigs)
     
     if pyrodigal_metamode:

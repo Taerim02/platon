@@ -1,5 +1,4 @@
 
-import json
 import logging
 import os
 import sys
@@ -8,7 +7,6 @@ import platon
 import platon.config as cfg
 
 log = logging.getLogger('DB')
-
 
 def check():
     """Check if database directory exists, is accessible and contains necessary files."""

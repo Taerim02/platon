@@ -1,18 +1,11 @@
-import functools as ft
-import os
-import re
-import sys
+import os, re, sys
 import pyfastx
 import pyrodigal
 import argparse
-import pandas as pd
-import json
-
+import csv
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
-parser.add_argument("--name", help="original fasta file name for generating a log file")
-parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument("--verbose", help="Enable verbose output")
 args = parser.parse_args()
 
@@ -23,7 +16,6 @@ match = re.search(pattern, args.fasta_file)
 match = match.group(1)
 
 contigs = {}
-raw_contigs = []
 try:
     for record in pyfastx.Fasta(str(args.fasta_file)):
         length = len(record.seq)
@@ -31,30 +23,16 @@ try:
             'id': record.name,
             'length': length,
             'sequence': str(record.seq),
-            'orfs': {},
-            'is_circular': False,
-            'inc_types': [],
-            'amr_hits': [],
-            'mobilization_hits': [],
-            'orit_hits': [],
-            'replication_hits': [],
-            'conjugation_hits': [],
-            'rrnas': [],
-            'plasmid_hits': [],
-            'type': []
+            'orfs': {}
         }
-        raw_contigs.append(contig)
         contigs[record.name] = contig
         
 except Exception as e:
     sys.exit(f'ERROR: {str(e)}')
     
-
-orf_txt =  f'tmp/orf/{file_name}_orf.txt'
 proteins_path = f'tmp/protein/{file_name}_proteins.faa'
-log_file = os.path.join(f'{args.name}.log')
-
-
+orf_tsv =  f'tmp/orf/{file_name}_orf.tsv'
+tsv_header = ["contig", "start", "end", "strand", "id"]
 
 for record in pyfastx.Fasta(str(args.fasta_file)):
     orf_finder = pyrodigal.GeneFinder(meta=True, closed=True, mask=True)
@@ -73,22 +51,16 @@ for record in pyfastx.Fasta(str(args.fasta_file)):
             }
             contig = contigs.get(record.name, None)
             if contig is not None:
-                contig['orfs'][orf_id] = orf
-                with open(log_file, "a") as fh:  # Changed to append mode ("a")
-                    fh.write(
-                        f'ORFs: found! contig={contig["id"]}, start={orf["start"]}, end={orf["end"]}, strand={orf["strand"]}\n'
-                    )
-                with open(orf_txt, "a") as fh:
-                    fh.write(f'{{"contig":"{contig["id"]}", "start":{orf["start"]}, "end":{orf["end"]}, "strand":"{orf["strand"]}", "id":{orf["id"]}}}\n')
+                with open(orf_tsv, "a", newline='') as fh:
+                    writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
+                    is_empty = fh.tell() == 0
+                    if is_empty:
+                        writer.writeheader()
+                    tsv_row = {"contig":contig["id"], "start":orf["start"], "end":orf["end"], "strand":orf["strand"], "id":orf["id"]}
+                    writer.writerow(tsv_row)
 
-if not os.path.exists(proteins_path):  # Check if proteins_path file was created
+# Check if proteins_path file was created
+if not os.path.exists(proteins_path):  
     sys.exit('Error: ORF prediction failed!')
 
-no_orfs = sum(len(contigs[k]['orfs']) for k in contigs)  # Calculate total number of ORFs
-
-if(args.verbose):
-    print(f'\tfound {no_orfs} ORFs')
-
-with open(log_file, "a") as fh:  # Changed to append mode ("a")
-    fh.write(f'ORF detection: # ORFs={no_orfs}\n')
 

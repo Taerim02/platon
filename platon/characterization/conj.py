@@ -1,24 +1,22 @@
 import pyhmmer
 import os 
 import argparse
-
+import csv
 
 parser = argparse.ArgumentParser(description="Process FASTA file for Conjugation gene detection")
 parser.add_argument("faa_file", help="Input FASTA file")
-parser.add_argument("--name", help="original fasta file name for generating a log file")
 parser.add_argument("--db_path", help="db path")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
 args = parser.parse_args()
 
-# set a faa file, the file name, and the log file from the input file
-log_file = os.path.join(f'{args.name}.log')
+# set a faa file and the file name  from the input file
 file_name = os.path.splitext(os.path.basename(str(args.faa_file)))[0]
 sequence_database_path = str(args.faa_file)  
 
 # set the variable needed to store information processed by pyhmmer
-contig_dict = {}
+tsv_header = ['contig', 'type', 'orf_id', 'bitscore', 'evalue']
 hits_set = set()
 
 with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
@@ -36,26 +34,10 @@ with pyhmmer.plan7.HMMFile(args.db_path) as hmm_file:
                         'evalue': hit.evalue,
                     }
                     hits_set.add(f'{contig_id}_{orf_id}')
-                    if contig_id in contig_dict:
-                        contig_dict[contig_id].append(hit_info)
-                    else:
-                        contig_dict[contig_id] = [hit_info]
-                    
-                    with open(log_file, "a") as fh:
-                       fh.write(
-                           'conj genes: hit! contig=%s, type=%s' %
-                              (contig_id, hit_info['type'])
-                       )
-                    with open(args.output, "a") as fh:
-                        fh.write(f"id: {contig_id} orf_id: {orf_id} {hit_info}\n")
-
-
-# return None if there is no result from pyhmmer 
-if not os.path.isfile(args.output):
-    with open(args.output, "a") as fh:
-        fh.write(f'None\n') 
-
-# write each number of hits per a contig the log file
-with open(log_file, "a") as fh:
-    for contig_id in contig_dict.keys():
-        fh.write(f'mob genes: contig={contig_id}, mobs={len(contig_dict[contig_id])}\n')
+                    with open(args.output, "a", newline='') as fh:
+                        writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
+                        is_empty = fh.tell() == 0
+                        if is_empty:
+                            writer.writeheader()
+                        tsv_row = {"contig":contig_id, "type": hit_info['type'], "bitscore":hit_info["bitscore"], "evalue":hit_info["evalue"],  "orf_id": orf_id}
+                        writer.writerow(tsv_row)

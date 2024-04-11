@@ -1,18 +1,13 @@
-
 from pathlib import Path
 import json
 import logging
 import os, re, sys
-import shutil
-import subprocess as sp
 import pyfastx
-
 
 import platon
 import platon.db as db
 import platon.config as cfg
 import platon.constants as pc
-import platon.functions as pf
 import platon.utils as pu
 import platon.__init__ as init
 
@@ -154,12 +149,12 @@ def main():
             print('No potential plasmid contigs found. Please, check contig lengths. Maybe you passed a finished or pseudo genome?')
         sys.exit(0)
     
-    if args.module == 'metagenomic':
-        import platon.meta_platon as meta_platon
-        raw_contigs, contigs, filtered_contigs = meta_platon.main(raw_contigs, contigs, filtered_contigs, args, log, output_path)
+    if cfg.metagenome:
+        import meta_platon as meta_platon
+        raw_contigs, contigs, filtered_contigs = meta_platon.main(raw_contigs, contigs, args, log, output_path)
     else:
-        import platon.single_platon as single_platon
-        raw_contigs, contigs, filtered_contigs = single_platon.main(raw_contigs, contigs, filtered_contigs, args, log, output_path)
+        import single_platon as single_platon
+        raw_contigs, contigs, filtered_contigs = single_platon.main(raw_contigs, contigs, args, log, output_path)
     
     # write comprehensive results to JSON file
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.json')

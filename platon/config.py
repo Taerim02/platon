@@ -21,7 +21,7 @@ output_path = None
 # workflow configuration
 mode = None
 characterize = None
-module = None
+metagenome = None
 
 
 def setup(args):
@@ -95,11 +95,11 @@ def setup(args):
 
 
     # workflow configurations
-    global mode, characterize, module
+    global mode, characterize, metagenome
 
     mode = args.mode
     log.info('mode=%s', mode)
     characterize = args.characterize
     log.info('characterize=%s', characterize)
-    module = args.module
-    log.info('metagenome=%s', module)
+    metagenome = args.meta
+    log.info('metagenome=%s', metagenome)
