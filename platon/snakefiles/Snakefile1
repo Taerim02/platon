@@ -9,6 +9,7 @@ import platon.functions as pf
 
 # store variables needed in the snakefile1.py
 current_path = config["current_path"]
+print(os.listdir(current_path))
 min_protein_identity = config["min_protein_identity"]
 
 all_file_paths = glob.glob("tmp/chunk/*.fasta")
