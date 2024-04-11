@@ -1,23 +1,23 @@
 import os
-from pathlib import Path
-import subprocess as sp
 import pyfastx
 import argparse
+from pathlib import Path
+import subprocess as sp
+import csv
 
-parser = argparse.ArgumentParser(description="Process FASTA file for determine circularity")
+parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("--tmpdir", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument("--name", help="original fasta file name for generating a log file")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
 parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 parser.add_argument("--min", help="minimum circular basepair overlap")
 
 args = parser.parse_args()
+
 file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
 
-scored_contigs = {}
-raw_contigs = []
+contigs = {}
 
 for record in pyfastx.Fasta(str(args.fasta_file)):
     length = len(record.seq)
@@ -25,11 +25,8 @@ for record in pyfastx.Fasta(str(args.fasta_file)):
         'id': record.name,
         'length': length,
         'sequence': str(record.seq),
-        'orfs': {},
-        'is_circular': False,
     }
-    raw_contigs.append(contig)
-    scored_contigs[record.name] = contig
+    contigs[record.name] = contig
 
 tmpdir_path = Path(args.tmpdir)
 
@@ -44,17 +41,12 @@ def write_sequence_to_file(contig, contig_split_position, header):
         fh.write(sequence +'\n ')
     return file_path, sequence
 
-log_file = os.path.join(f'{args.name}.log')
+tsv_header = ['contig', 'length', 'mismatches', 'prime5End', 'prime3Start', 'prime3End', 'seq-a-len', 'seq-b-len']
 
-for id, contig in scored_contigs.items():
+for id, contig in contigs.items():
     contig_split_position = int(contig['length'] / 2)
     contig_fragment_a_path, contig_fragment_a_seq = write_sequence_to_file(contig, contig_split_position, 'a')
     contig_fragment_b_path, contig_fragment_b_seq = write_sequence_to_file(contig, contig_split_position, 'b')
-    with open(log_file, "a") as fh:
-        fh.write(
-        'circularity: contig=%s, len=%d, seq-a-len=%d, seq-b-len=%d\n' %
-        (contig['id'], contig['length'], len(contig_fragment_a_seq), len(contig_fragment_b_seq))
-        )
     cmd = [
         'nucmer',
         '-f',  # only forward strand
@@ -74,6 +66,7 @@ for id, contig in scored_contigs.items():
 
     if(proc.returncode != 0):
         print('failed')
+        
     has_match = False
     with tmpdir_path.joinpath(f"{contig['id']}.delta").open() as fh:
         for line in fh:
@@ -91,31 +84,25 @@ for id, contig in scored_contigs.items():
                     alignment_a = end_a - start_a + 1
                     alignment_b = end_b - start_b + 1
                     if(alignment_a == alignment_b
-                            and alignment_a > int(args.min)
-                            and (mismatches / alignment_a) < 0.05
-                            and end_b == len(contig_fragment_b_seq)
-                            and start_a == 1):
-                        #contig['is_circular'] = True
+                        and alignment_a > int(args.min)
+                        and (mismatches / alignment_a) < 0.05
+                        and end_b == len(contig_fragment_b_seq)
+                        and start_a == 1):
                         link = {
                             'length': alignment_a,
                             'mismatches': mismatches,
-                            'prime5Start': 1,
                             'prime5End': alignment_a,
                             'prime3Start': contig['length'] - alignment_b + 1,
                             'prime3End': contig['length'],
                         }
-                        #contig['circular_link'] = link
-                        
-                        with open(log_file, "a") as fh:
-                            fh.write(
-                                f'circularity: link! id={contig["id"]}, length={link["length"]}, # mismatches={link["mismatches"]}, linking-region=[1-{link["prime5End"]}]...[{link["prime3Start"]}-{link["prime3End"]}\n]'
-                            )
-                        with open(args.output, "a") as fh:
-                            fh.write(f"id: {contig['id']} {link}\n")
+                        with open(args.output, "a", newline='') as fh:
+                            writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
+                            is_empty = fh.tell() == 0
+                            if is_empty:
+                                writer.writeheader()
+                            tsv_row = {'contig':contig['id'], 'length':link['length'], 'mismatches':link['mismatches'],
+                                'prime5End':link['prime5End'], 'prime3Start':link['prime3Start'], 'prime3End':link['prime3End'], 
+                                'seq-a-len':len(contig_fragment_a_seq), 'seq-b-len':len(contig_fragment_b_seq)}
+                            writer.writerow(tsv_row)
                         break
-
-
-if not os.path.isfile(args.output):
-    with open(args.output, "a") as fh:
-        fh.write('None\n')
 

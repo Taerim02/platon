@@ -79,9 +79,8 @@ rule search_amr_genes:
         amr = touch('tmp/function/amr/{file_name}_{i}_amr.tsv')   
     params:
         db_path = cfg.db_path.joinpath('ncbifam-amr'),
-        name = file_name
     shell:
-        'python {current_path}/characterization/amr.py --db_path {params.db_path} --name {params.name} --output {output.amr} {input.faa_file}'
+        'python {current_path}/characterization/amr.py --db_path {params.db_path} --output {output.amr} {input.faa_file}'
 
 
 rule search_replication_genes: 
@@ -157,7 +156,6 @@ rule search_inc_type:
     params:
         db_path = str(cfg.db_path.joinpath('inc-types.fasta')),
         inc = "tmp/inc/{file_name}_{i}.inc.blast.out",
-        name = file_name
     shell:
         r"""
         blastn \
@@ -169,7 +167,7 @@ rule search_inc_type:
         -outfmt '6 qseqid sseqid sstart send sstrand pident qcovs bitscore' \
         -out {params.inc}
 
-        python {current_path}/characterization/inc_result.py --name {params.name} --output {output.inc} {params.inc}
+        python {current_path}/characterization/inc_result.py --output {output.inc} {params.inc}
         """
 
 rule search_orit_sequences:
