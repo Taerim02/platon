@@ -64,7 +64,7 @@ def test_platon_wo_plasmids(tmpdir):
 
 def test_platon_db_parameter_meta(tmpdir):
     # full test on draft assembly containing plasmid contigs
-    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--module', 'metagenomic'])
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--meta'])
     assert proc.returncode == 0
 
     tmpdir_path = Path(tmpdir)
@@ -78,7 +78,7 @@ def test_platon_db_env_meta(tmpdir):
 
     env = os.environ
     env['PLATON_DB'] = 'test/db'
-    proc = run(['bin/platon', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--module', 'metagenomic'], env=env)
+    proc = run(['bin/platon', '--output', tmpdir, '--prefix', 'test', 'test/data/mock-sample.fna', '--meta'], env=env)
     assert proc.returncode == 0
 
     tmpdir_path = Path(tmpdir)
@@ -89,7 +89,7 @@ def test_platon_db_env_meta(tmpdir):
 
 def test_platon_w_plasmids_meta(tmpdir):
     # full test on draft assembly containing plasmid contigs
-    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-w-plasmids.fna','--module', 'metagenomic'])
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-w-plasmids.fna', '--meta'])
     assert proc.returncode == 0
 
     tmpdir_path = Path(tmpdir)
@@ -101,7 +101,7 @@ def test_platon_w_plasmids_meta(tmpdir):
 
 def test_platon_wo_plasmids_meta(tmpdir):
     # full test on draft assembly containing no plasmid contigs
-    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-wo-plasmids.fna', '--module', 'metagenomic'])
+    proc = run(['bin/platon', '--db', 'test/db', '--output', tmpdir, '--prefix', 'test', 'test/data/draft-wo-plasmids.fna', '--meta'])
     assert proc.returncode == 0
 
     tmpdir_path = Path(tmpdir)
