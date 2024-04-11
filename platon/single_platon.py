@@ -29,11 +29,11 @@ def main(raw_contigs, contigs, args, log, output_path):
     training_info = pf.train_gene_prediction(contigs)
     
     if pyrodigal_metamode:
-        log.info('ORFs: execute pyrodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.module)
+        log.info('ORFs: execute pyrodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
         for record in pyfastx.Fasta(str(cfg.genome_path)): 
             pf.predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode)
     else:
-        log.info('ORFs: Execute pyrodigal in genomic mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.module)
+        log.info('ORFs: Execute pyrodigal in genomic mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
         for record in pyfastx.Fasta(str(cfg.genome_path)): 
             pf.predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode, training_info)
             
