@@ -35,7 +35,7 @@ def main(raw_contigs, contigs, args, log, output_path):
 
     # first Snakemake session starts for non-characsteristic part. 
     result1 = snakemake.snakemake(
-        snakefile="snakefiles/Snakefile1.py",
+        snakefile="snakefiles/Snakefile1",
         workdir= output_path,
         config={"current_path": Path.cwd(), "min_protein_identity": pc.MIN_PROTEIN_IDENTITY},
         cores=cfg.threads, quiet=True
@@ -146,11 +146,11 @@ def main(raw_contigs, contigs, args, log, output_path):
       
     # second snakemake part starts for the characteristic part.
     result2 = snakemake.snakemake(
-        snakefile="snakefiles/Snakefile2.py",
+        snakefile="snakefiles/Snakefile2",
         workdir= output_path,
         config={"current_path": Path.cwd(), "min_circ_basepair_overlap":pc.MIN_CIRC_BASEPAIR_OVERLAP},
         cores=cfg.threads, scheduler="greedy", quiet=True)
-     
+    
     
     if result2:
         if(args.verbose):
