@@ -9,7 +9,6 @@ import platon.functions as pf
 
 # store variables needed in the snakefile1.py
 current_path = config["current_path"]
-print(os.listdir(current_path))
 min_protein_identity = config["min_protein_identity"]
 
 all_file_paths = glob.glob("tmp/chunk/*.fasta")
@@ -44,7 +43,7 @@ rule find_orfs:
         outdir='tmp',
         verbose = cfg.verbose
     shell:
-        'python {current_path}/non-characterization/orfs_find.py --verbose {params.verbose} --output {params.outdir} {input.fasta_file}' 
+        'python {current_path}/platon/non-characterization/orfs_find.py --verbose {params.verbose} --output {params.outdir} {input.fasta_file}' 
 
 
 
@@ -78,7 +77,7 @@ rule filter_rds:
         outdir= 'tmp',
         verbose = cfg.verbose
     shell:         
-        'python {current_path}/non-characterization/rds_filter.py --verbose {params.verbose} --mps {params.mps} --output {params.outdir} --min {min_protein_identity} {input}'
+        'python {current_path}/platon/non-characterization/rds_filter.py --verbose {params.verbose} --mps {params.mps} --output {params.outdir} --min {min_protein_identity} {input}'
         
 rule integrate_protein:
     input:
