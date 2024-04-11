@@ -34,7 +34,7 @@ def main(raw_contigs, contigs, args, log, output_path):
 
 
     # first Snakemake session starts for non-characsteristic part. 
-    result1 = snakemake.snakemake(
+    result1 = snakemake(
         snakefile="snakefiles/Snakefile1",
         workdir= output_path,
         config={"current_path": Path.cwd(), "min_protein_identity": pc.MIN_PROTEIN_IDENTITY},
@@ -145,7 +145,7 @@ def main(raw_contigs, contigs, args, log, output_path):
     pf.faa_into_chunk_contigs(pc.DEFAULT_CONTIG_SIZE, output_path)
       
     # second snakemake part starts for the characteristic part.
-    result2 = snakemake.snakemake(
+    result2 = snakemake(
         snakefile="snakefiles/Snakefile2",
         workdir= output_path,
         config={"current_path": Path.cwd(), "min_circ_basepair_overlap":pc.MIN_CIRC_BASEPAIR_OVERLAP},
