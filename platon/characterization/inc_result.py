@@ -28,7 +28,6 @@ if os.path.getsize(args.inc_output) > 0:
                 'coverage': float(cols[6]) / 100,
                 'bitscore': float(cols[7])
             }
-            log.debug('this is debug')
             if(hit['coverage'] >= 0.6):
                 hit_pos = hit['end'] if hit['strand'] == '+' else hit['start']
                 hit['hit_pos'] = hit_pos
