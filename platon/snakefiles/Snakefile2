@@ -145,7 +145,7 @@ rule search_rrnas:
         {params.db_path} \
         {input.fasta_file} > tmp/rrnas/output.txt
 
-        python {current_path}/platon/characterization/rrnas_result.py --output {output.rrnas} {params.rrnas} 
+        python {current_path}/platon/characterization/rrnas.py --output {output.rrnas} {params.rrnas} 
         """
         
 rule search_inc_type:
@@ -167,7 +167,7 @@ rule search_inc_type:
         -outfmt '6 qseqid sseqid sstart send sstrand pident qcovs bitscore' \
         -out {params.inc}
 
-        python {current_path}/platon/characterization/inc_result.py --output {output.inc} {params.inc}
+        python {current_path}/platon/characterization/inc.py --output {output.inc} {params.inc}
         """
 
 rule search_orit_sequences:
@@ -190,7 +190,7 @@ rule search_orit_sequences:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.orit}
 
-        python {current_path}/platon/characterization/orit_result.py --output {output.orit} {params.orit}
+        python {current_path}/platon/characterization/orit.py --output {output.orit} {params.orit}
         """
 
 rule search_reference_plasmids:  
@@ -212,7 +212,7 @@ rule search_reference_plasmids:
         -outfmt '6 qseqid sseqid qstart qend sstart send slen length nident' \
         -out {params.ref}
 
-        python {current_path}/platon/characterization/ref_result.py --output {output.ref} {input.contig_file} {params.ref}
+        python {current_path}/platon/characterization/ref.py --output {output.ref} {input.contig_file} {params.ref}
         """
 
 rule integrate_amr_files:
