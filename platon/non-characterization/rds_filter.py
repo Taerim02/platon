@@ -1,24 +1,21 @@
-import functools as ft
 import os
-import re
-import sys
 import pyfastx
 import argparse
 import csv
+
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection") 
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("tsv_file", help="TSV FASTA file")
 parser.add_argument("orf_file", help="orf_file")
 parser.add_argument("--mps", help="mps path")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
+parser.add_argument('--characterize', '-c', action='store_true', help="deactivate filters; characterize all contigs")
 parser.add_argument("--verbose", help="Enable verbose output")
 parser.add_argument("--min", help="minimum protein identity")
 args = parser.parse_args()
 
 
 file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
-
 
 contigs = {}
 
@@ -31,7 +28,6 @@ for record in pyfastx.Fasta(str(args.fasta_file)):
         'orfs': {}
     }
     contigs[record.name] = contig
-    
 
 
 with open(args.orf_file, "r") as orf_file:
@@ -99,10 +95,12 @@ for contig in contigs.values():
             score_sum += score
     if len(contig['orfs']) > 0:
         contig['protein_score'] = score_sum / len(contig['orfs']) 
-        with open(protein_score, "a") as fh:
-            writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
-            is_empty = fh.tell() == 0
-            if is_empty:
-                writer.writeheader()
-            tsv_row = {"contig":contig['id'], "score_sum": score_sum, "RDS":contig['protein_score'], "ORFs":len(contig['orfs'])}
-            writer.writerow(tsv_row)
+    else:
+        contig['protein_score'] = 0.0
+    with open(protein_score, "a") as fh:
+        writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
+        is_empty = fh.tell() == 0
+        if is_empty:
+            writer.writeheader()
+        tsv_row = {"contig":contig['id'], "score_sum": score_sum, "RDS":contig['protein_score'], "ORFs":len(contig['orfs'])}
+        writer.writerow(tsv_row)
