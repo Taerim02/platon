@@ -93,10 +93,7 @@ for contig in contigs.values():
             orf['score'] = score
             orf['product'] = marker_protein['product']
             score_sum += score
-    if len(contig['orfs']) > 0:
-        contig['protein_score'] = score_sum / len(contig['orfs']) 
-    else:
-        contig['protein_score'] = 0.0
+    contig['protein_score'] = score_sum / len(contig['orfs']) if len(contig['orfs']) > 0 else 0
     with open(protein_score, "a") as fh:
         writer = csv.DictWriter(fh, delimiter="\t", fieldnames=tsv_header)
         is_empty = fh.tell() == 0
