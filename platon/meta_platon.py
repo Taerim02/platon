@@ -180,9 +180,7 @@ def main(raw_contigs, contigs, args, log, output_path):
             pf.extract_function_info_orit(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'is_circular':
             pf.extract_function_info_cir(scored_contigs, names[0], names[1], output_path)
-        else:
-            pf.extract_function_info(scored_contigs, names[0], names[1], output_path)
-
+        
     # lookup AMR genes with creating amr_genes dictionary and then match hmm-id.
     amr_genes = {}
     with cfg.db_path.joinpath('ncbifam-amr.tsv').open() as fh:

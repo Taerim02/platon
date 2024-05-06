@@ -602,22 +602,6 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
 def merge_dicts(dict1, dict2):
     return {**dict1, **dict2}
     
-def extract_function_info(contigs:dict, tsv_file:str, index:str, output_path): 
-    function_pattern = r"id: ([a-zA-Z0-9_.]+) \{(.+)\}"
-    with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
-        for line in fh:
-            match = re.match(function_pattern, line)
-            if match:  
-                contig_id = match.group(1)
-                if contig_id in contigs:
-                  if index == 'is_circular':
-                      contigs[contig_id]['is_circular'] = True 
-                  else:
-                      dict_string = "{" + match.group(2) + "}"
-                      dict_value = ast.literal_eval(dict_string)
-                      contigs[contig_id][index].append(dict_value)
-    return
-    
     
 def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_path): 
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
