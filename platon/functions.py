@@ -752,7 +752,7 @@ def extract_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             if row['contig'] in contigs:
-                if(row['contig'] not in hits_set):
+                if(f'{row["contig"]}_{row["orf_id"]}' not in hits_set):
                     orf = contigs[row["contig"]]['orfs'][int(row["orf_id"])]
                     hit = {
                         'type': row['type'],
