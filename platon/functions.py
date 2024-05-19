@@ -252,13 +252,13 @@ def search_inc_type(contig):    ## why they do not record for the coverage and i
                     if(hit['bitscore'] > former_hit['bitscore']):
                         hits_per_pos[hit_pos] = hit
                         log.info(
-                            'inc-type: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                            'inc-type: hit! contig=%s, inc id=%s, start=%d, end=%d, strand=%s',
                             contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                         )
                 else:
                     hits_per_pos[hit_pos] = hit
                     log.info(
-                        'inc-type: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                        'inc-type: hit! contig=%s, inc id=%s, start=%d, end=%d, strand=%s',
                         contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                     )
     contig['inc_types'] = list(hits_per_pos.values())
@@ -296,7 +296,7 @@ def search_rrnas(contig):
                 }
                 contig['rrnas'].append(hit)
                 log.info(
-                    'rRNAs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                    'rRNAs: hit! contig=%s, rRNA id=%s, start=%d, end=%d, strand=%s',
                     contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                 )
     log.info('rRNAs: contig=%s, # rRNAs=%s', contig['id'], len(contig['rrnas']))
@@ -347,7 +347,7 @@ def search_reference_plasmids(contig):
             if(hit['coverage'] >= 0.8):
                 contig['plasmid_hits'].append(hit)
                 log.info(
-                    'ref plasmids: hit! contig=%s, id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
+                    'ref plasmids: hit! contig=%s, ref id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
                     contig['id'], hit['plasmid']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
     log.info('ref plasmids: contig=%s, # ref plasmids=%s', contig['id'], len(contig['plasmid_hits']))
@@ -391,7 +391,7 @@ def search_orit_sequences(contig):
             if(hit['coverage'] >= 0.9 and hit['identity'] >= 0.9):
                 contig['orit_hits'].append(hit)
                 log.info(
-                    'oriT: hit! contig=%s, id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
+                    'oriT: hit! contig=%s, oriT id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
                     contig['id'], hit['orit']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
     log.info('oriT: contig=%s, # oriT=%s', contig['id'], len(contig['orit_hits']))
@@ -493,7 +493,6 @@ def construct_hit_dict(hits, hit, orf, inclued_hmm_id = False):
     return hit
     
 
-
 def search_amr_genes_py(contigs, filteredProteinsPath):
     """Search for AMR genes."""
     hits_set = set()
@@ -513,7 +512,7 @@ def search_amr_genes_py(contigs, filteredProteinsPath):
                         hits_set.add(f'{contig_id}_{orf_id}')
                         contig['amr_hits'].append(hit)
                         log.info(
-                            'AMRs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                            'AMRs: hit! contig=%s, AMR id=%s, start=%d, end=%d, strand=%s',
                             contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                         )
     for id, contig in contigs: 
@@ -540,7 +539,7 @@ def search_replication_genes_py(contigs, filteredProteinsPath):
                         hits_set.add(f'{contig_id}_{orf_id}')
                         contig['replication_hits'].append(hit)
                         log.info(
-                            'rep genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                            'rep genes: hit! contig=%s, rep id=%s, start=%d, end=%d, strand=%s',
                             contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                         )
     for id, contig in contigs:                
@@ -566,7 +565,7 @@ def search_mobilization_genes_py(contigs, filteredProteinsPath):
                         hits_set.add(f'{contig_id}_{orf_id}')
                         contig['mobilization_hits'].append(hit)
                         log.info(
-                            ' mob genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                            ' mob genes: hit! contig=%s, mob id=%s, start=%d, end=%d, strand=%s',
                             contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                         )
     for id, contig in contigs:                
@@ -592,7 +591,7 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
                         hits_set.add(f'{contig_id}_{orf_id}')
                         contig['conjugation_hits'].append(hit)
                         log.info(
-                            'conj genes: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                            'conj genes: hit! contig=%s, conj id=%s, start=%d, end=%d, strand=%s',
                             contig['id'], hit['type'], hit['start'], hit['end'], hit['strand']
                         )
     for id, contig in contigs:
@@ -700,7 +699,7 @@ def extract_function_info_orit(contigs:dict, tsv_file:str, index:str, output_pat
                 }
                 contigs[row['contig']]['orit_hits'].append(hit)
                 log.debug(
-                    'oriT plasmids: hit! contig=%s, orit id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
+                    'oriT plasmids: hit! contig=%s, oriT id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
                     row['contig'], hit['orit']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
     log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0]))  
