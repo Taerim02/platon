@@ -39,7 +39,6 @@ def run_command(cmd, env=False):
     )
     return proc
 
-
 def proc_error(var, var_error, proc, cmd, contig):
     if(proc.returncode != 0):
         log.warning(
@@ -438,7 +437,7 @@ def filter_contig(contig):
         and len(contig['rrnas']) == 0):
         log.debug('filter: RDS > CT & plasmid hits & no rRNAs! contig=%s', contig['id'])
         return True
-
+            
     return False
     
 
@@ -452,6 +451,7 @@ def train_gene_prediction(contigs):
     bytes_combined_sequence = combined_sequence.encode('utf-8')
     training_info = orf_finder.train(bytes_combined_sequence) ##  list comprehsion
     return training_info
+    
 
 def predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode, training_info = None):
     orf_finder = pyrodigal.GeneFinder(training_info, meta=pyrodigal_metamode, closed=True, mask=True)
@@ -602,10 +602,8 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
 def merge_dicts(dict1, dict2):
     return {**dict1, **dict2}
     
-    
 def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_path): 
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
-        contig_set =set()
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             if row['contig'] in contigs:
@@ -618,13 +616,11 @@ def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_pa
                     'evalue': float(row['evalue'])
                 }
                 contigs[row['contig']][index].append(hit)
-                contig_set.add(row["contig"])
-                log.info(
-                    'rRNAs: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                log.debug(
+                    'rRNAs: hit! contig=%s, rRNA id=%s, start=%d, end=%d, strand=%s',
                     row["contig"], hit['type'],hit['start'], hit['end'], hit['strand']
                 )
-    for contig in contig_set:            
-        log.info(f'rRNAs: contig={contig}, rRNAs={len(contigs[contig][index])}')
+    log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0]))
     return 
         
 
@@ -650,24 +646,21 @@ def extract_function_info_inc(contigs:dict, tsv_file:str, index:str, output_path
                         hits_dict[row['contig']][hit_pos] = hit
                     else:
                         hits_dict[row['contig']] = {hit_pos:hit}
-                    log.info(
-                        'inc hit: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
+                    log.debug(
+                        'inc hit: hit! contig=%s, inc id=%s, start=%d, end=%d, strand=%s',
                         row["contig"], hit['type'],hit['start'], hit['end'], hit['strand']
                     )
-    
     for key, value in hits_dict.items():
         contigs[key]['inc_types'] = list(value.values())
-        log.info('inc-type: contig=%s, # inc-types=%s', contigs[key]['id'], len(contigs[key]['inc_types']))
+    log.info('%s: found %d number contigs!', index, len(list(hits_dict.keys())))
     return 
     
     
 def extract_function_info_ref(contigs:dict, tsv_file:str, index:str, output_path): 
-    contig_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
             if row['contig'] in contigs:
-                contig_set.add(row['contig'])
                 hit = {
                 'contig_start': int(row['contig_start']),
                 'contig_end': int(row['contig_end']),
@@ -681,22 +674,18 @@ def extract_function_info_ref(contigs:dict, tsv_file:str, index:str, output_path
                 'identity': float(row['identity'])
                 }
                 contigs[row['contig']]['plasmid_hits'].append(hit)
-                log.info(
-                    'ref plasmids: hit! contig=%s, id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
+                log.debug(
+                    'ref plasmids: hit! contig=%s, ref id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
                     row['contig'], hit['plasmid']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
-
-    for contig in contig_set:
-        log.info(f'ref plasmids: contig={contig}, ref plasmids={len(contigs[contig][index])}')
+    log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0])) 
     return
     
 def extract_function_info_orit(contigs:dict, tsv_file:str, index:str, output_path): 
-    contig_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
             if row['contig'] in contigs:
-                contig_set.add(row['contig'])
                 hit = {
                 'contig_start': int(row['contig_start']),
                 'contig_end': int(row['contig_end']),
@@ -710,23 +699,19 @@ def extract_function_info_orit(contigs:dict, tsv_file:str, index:str, output_pat
                 'identity': float(row['identity'])
                 }
                 contigs[row['contig']]['orit_hits'].append(hit)
-                log.info(
-                    'oriT plasmids: hit! contig=%s, id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
+                log.debug(
+                    'oriT plasmids: hit! contig=%s, orit id=%s, c-start=%d, c-end=%d, coverage=%f, identity=%f',
                     row['contig'], hit['orit']['id'], hit['contig_start'], hit['contig_end'], hit['coverage'], hit['identity']
                 )
-
-    for contig in contig_set:
-        log.info(f'oriT: contig={contig}, oriT={len(contigs[contig][index])}')
+    log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0]))  
     return
     
 
 def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path): 
-    contig_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
             if row['contig'] in contigs:
-                contig_set.add(row['contig'])
                 link = {
                     'length': row['length'],
                     'mismatches': row['mismatches'],
@@ -739,15 +724,13 @@ def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path
                 contigs[row['contig']]['circular_link'] = link
                 log.debug('circularity: contig=%s, len=%d, seq-a-len=%d, seq-b-len=%d',
                                 row["contig"], contigs[row['contig']]['length'], row['seq-a-len'], row['seq-b-len'])
-                log.info(f'circularity: link! id={row["contig"]}, length={link["length"]}, # mismatches={link["mismatches"]}, linking-region=[1-{link["prime5End"]}]...[{link["prime3Start"]}-{link["prime3End"]}]')
-
-    for contig in contig_set:
-        log.info(f'circularity: contig={contig}, is-circ={contigs[contig][index]}')
+                log.debug(f'circularity: link! id={row["contig"]}, length={link["length"]}, # mismatches={link["mismatches"]}, 
+                                linking-region=[1-{link["prime5End"]}]...[{link["prime3Start"]}-{link["prime3End"]}]')
+    log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if v[index]]))  
     return
                           
 def extract_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path:str):         
     hits_set = set()
-    contig_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
@@ -765,14 +748,11 @@ def extract_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path
                     if index == 'amr_hits':
                         hit['hmm-id'] = row['hmm-id']
                     hits_set.add(f'{row["contig"]}_{row["orf_id"]}')
-                    contig_set.add(row["contig"])
                     contigs[row['contig']][index].append(hit)
-                    index_dict = {'amr_hits':'AMRs', 'conjugation_hits': 'conj genes', 'mobilization_hits': 'mob genes', 'replication_hits': 'rep genes'}
-                    log.info(
-                        '%s: hit! contig=%s, type=%s, start=%d, end=%d, strand=%s',
-                        index_dict[index], row["contig"], hit['type'],hit['start'], hit['end'], hit['strand']
+                    index_dict = {'amr_hits':['AMRs', 'AMR'], 'conjugation_hits': ['conj genes', 'conj'], 'mobilization_hits': ['mob genes', 'mob'], 'replication_hits': ['rep genes', 'rep']}
+                    log.debug(
+                        '%s: hit! contig=%s, %s id=%s, start=%d, end=%d, strand=%s',
+                        index_dict[index][0], row["contig"], index_dict[index][1], hit['type'],hit['start'], hit['end'], hit['strand']
                     )
-                    
-    for contig in contig_set:
-        log.info(f'{index_dict[index]}: contig={contig}, {index_dict[index]}={len(contigs[contig][index])}')
+    log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0]))                
     return
