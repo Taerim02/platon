@@ -724,8 +724,8 @@ def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path
                 contigs[row['contig']]['circular_link'] = link
                 log.debug('circularity: contig=%s, len=%d, seq-a-len=%d, seq-b-len=%d',
                                 row["contig"], contigs[row['contig']]['length'], row['seq-a-len'], row['seq-b-len'])
-                log.debug(f'circularity: link! id={row["contig"]}, length={link["length"]}, # mismatches={link["mismatches"]}, 
-                                linking-region=[1-{link["prime5End"]}]...[{link["prime3Start"]}-{link["prime3End"]}]')
+                log.debug('circularity: link! id=%s, length=%d, # mismatches=%d, linking-region=[1-%d]...[%d-%d]',
+                            row["contig"], link['length'], link['mismatches'], link['prime5End'], link['prime3Start'], link['prime3End'])
     log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if v[index]]))  
     return
                           
