@@ -1,11 +1,12 @@
+import os
+import re
+import csv
 import logging
 import subprocess as sp
-import pyrodigal
-import os, re
-import pyhmmer
+
 import pyfastx
-import ast
-import csv
+import pyhmmer
+import pyrodigal
 
 import platon
 import platon.config as cfg
@@ -15,6 +16,7 @@ log = logging.getLogger('functions')
 
 def get_base_name(file_name):
     return os.path.splitext(os.path.basename(file_name))[0]
+
 
 def write_sequence_to_file(contig, contig_split_position, header):
     file_path = cfg.tmp_path.joinpath(f"{contig['id']}-{header}.fasta")
@@ -27,6 +29,7 @@ def write_sequence_to_file(contig, contig_split_position, header):
         fh.write(sequence +'\n ')
     return file_path, sequence
 
+
 def run_command(cmd, env=False):
     env = cfg.env if env else None
     proc = sp.run(
@@ -38,6 +41,7 @@ def run_command(cmd, env=False):
         universal_newlines=True
     )
     return proc
+
 
 def proc_error(var, var_error, proc, cmd, contig):
     if(proc.returncode != 0):
@@ -84,7 +88,8 @@ def contigs_into_chunks(contigs, contig_size, output_path):
                 contig_file.write(f">{saved_contig['contig_name']}\n")
                 contig_file.write(f"{saved_contig['contig_sequence']}\n")
     return
-    
+
+
 def fasta_into_chunk_contigs(contigs, contig_size, output_path):
     current_list = []
     current_size = 0
@@ -126,25 +131,25 @@ def faa_into_chunk_contigs(contig_size, output_path):
     name = os.path.splitext(os.path.basename(str(cfg.genome_path)))[0]
     protein_files = os.listdir(output_path.joinpath(f'{output_path}/tmp/protein'))
     for file in protein_files:
-      if file.endswith(".faa"):
-          for record in pyfastx.Fasta(os.path.join(output_path.joinpath(f'{output_path}/tmp/protein'), file)):
-              orf_name = str(record.name).split()[0]
-              contig_sequence = str(record.seq)
-              contig_length = len(record.seq)
-              
-              if current_size + contig_length <= contig_size:
-                  contigs_to_save.append({'orf_name': orf_name, 'contig_sequence': contig_sequence})
-                  current_size += contig_length
-              else:
-                  i += 1
-                  contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
-                  with open(contig_file_path, 'w') as contig_file:
-                      for saved_contig in contigs_to_save:
-                          contig_file.write(f">{saved_contig['orf_name']}\n")
-                          contig_file.write(f"{saved_contig['contig_sequence']}\n")
-                  contigs_to_save = []
-                  current_size = 0
-    
+        if file.endswith(".faa"):
+            for record in pyfastx.Fasta(os.path.join(output_path.joinpath(f'{output_path}/tmp/protein'), file)):
+                orf_name = str(record.name).split()[0]
+                contig_sequence = str(record.seq)
+                contig_length = len(record.seq)
+                
+                if current_size + contig_length <= contig_size:
+                    contigs_to_save.append({'orf_name': orf_name, 'contig_sequence': contig_sequence})
+                    current_size += contig_length
+                else:
+                    i += 1
+                    contig_file_path = os.path.join(f'{output_path}/tmp', f'{name}_{i}_filtered.faa')
+                    with open(contig_file_path, 'w') as contig_file:
+                        for saved_contig in contigs_to_save:
+                            contig_file.write(f">{saved_contig['orf_name']}\n")
+                            contig_file.write(f"{saved_contig['contig_sequence']}\n")
+                    contigs_to_save = []
+                    current_size = 0
+
     # Handle the last batch of contigs
     if contigs_to_save:
         i += 1
@@ -154,7 +159,8 @@ def faa_into_chunk_contigs(contig_size, output_path):
                 contig_file.write(f">{saved_contig['orf_name']}\n")
                 contig_file.write(f"{saved_contig['contig_sequence']}\n")
     return
-                
+
+
 def test_circularity(contig):
     """Test if this contig can be circularized."""
     contig_split_position = int(contig['length'] / 2)
@@ -215,7 +221,7 @@ def test_circularity(contig):
     return
 
 
-def search_inc_type(contig):    ## why they do not record for the coverage and identity?
+def search_inc_type(contig):    
     """Search for incompatibility motifs."""
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.inc.blast.out")
@@ -301,7 +307,6 @@ def search_rrnas(contig):
                 )
     log.info('rRNAs: contig=%s, # rRNAs=%s', contig['id'], len(contig['rrnas']))
     return
-
 
 
 def search_reference_plasmids(contig):
@@ -396,8 +401,8 @@ def search_orit_sequences(contig):
                 )
     log.info('oriT: contig=%s, # oriT=%s', contig['id'], len(contig['orit_hits']))
     return
-        
-        
+
+
 def filter_contig(contig):
     
     """Apply heuristic filters based on contig information."""
@@ -439,10 +444,10 @@ def filter_contig(contig):
         return True
             
     return False
-    
 
 def train_gene_prediction(contigs): 
     """ Train gene prodiction for the genomic mode"""
+    
     log.info('create prodigal training info object: meta=%s, not pyrodigal_metamode')
     training_info = None
     orf_finder = pyrodigal.GeneFinder(meta= False, closed=True)
@@ -546,6 +551,7 @@ def search_replication_genes_py(contigs, filteredProteinsPath):
         log.info('rep genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['replication_hits']))
     return
 
+
 def search_mobilization_genes_py(contigs, filteredProteinsPath):
     """Search for mobilization genes."""
     hits_set = set()
@@ -572,6 +578,7 @@ def search_mobilization_genes_py(contigs, filteredProteinsPath):
         log.info('mob genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['mobilization_hits']))
     return
 
+
 def search_conjugation_genes_py(contigs, filteredProteinsPath):
     """Search for conjugation genes."""
     hits_set = set()
@@ -597,10 +604,12 @@ def search_conjugation_genes_py(contigs, filteredProteinsPath):
     for id, contig in contigs:
         log.info('conj genes: contig=%s, # mob-genes=%s', contig['id'], len(contig['conjugation_hits']))
     return
-    
+
+
 def merge_dicts(dict1, dict2):
     return {**dict1, **dict2}
-    
+
+
 def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_path): 
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
@@ -727,7 +736,8 @@ def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path
                             row["contig"], link['length'], link['mismatches'], link['prime5End'], link['prime3Start'], link['prime3End'])
     log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if v[index]]))  
     return
-                          
+
+
 def extract_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path:str):         
     hits_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
