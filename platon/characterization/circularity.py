@@ -1,9 +1,13 @@
-import os
-import pyfastx
 import argparse
-from pathlib import Path
-import subprocess as sp
 import csv
+import os 
+import subprocess as sp
+from pathlib import Path
+
+import pyfastx
+
+
+
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")

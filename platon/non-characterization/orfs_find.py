@@ -1,8 +1,11 @@
-import os, re, sys
-import pyfastx
-import pyrodigal
 import argparse
 import csv
+import re
+import os
+import sys
+
+import pyrodigal
+import pyfastx
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")

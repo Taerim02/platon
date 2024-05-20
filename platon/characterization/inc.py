@@ -1,6 +1,7 @@
-import os
 import argparse
 import csv
+import os
+
 
 parser = argparse.ArgumentParser(description="Process FASTA Incompatibility groups detection")
 parser.add_argument("inc_output", help="Input FASTA file")

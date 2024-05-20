@@ -1,13 +1,16 @@
-from pathlib import Path
 import json
 import logging
-import os, re, sys
+import os
+import re
+import sys
+from pathlib import Path
+
 import pyfastx
 
 import platon
-import platon.db as db
 import platon.config as cfg
 import platon.constants as pc
+import platon.db as db
 import platon.utils as pu
 import platon.__init__ as init
 

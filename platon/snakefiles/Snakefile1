@@ -1,6 +1,6 @@
+import re
 import os
 import glob
-import re
 
 import platon
 import platon.db as db

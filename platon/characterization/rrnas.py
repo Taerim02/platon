@@ -1,6 +1,6 @@
-import os
 import argparse
 import csv
+import os
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("rrnas_output", help="Input FASTA file")

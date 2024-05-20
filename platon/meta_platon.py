@@ -1,12 +1,15 @@
+import csv
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 from snakemake import snakemake
+
 import platon
 import platon.config as cfg
 import platon.constants as pc
 import platon.functions as pf
-import csv
+
 
 def main(raw_contigs, contigs, args, log, output_path):
     '''

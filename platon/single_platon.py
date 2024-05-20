@@ -1,8 +1,9 @@
 import functools as ft
-import sys
 import shutil
+import sys
 import subprocess as sp
 from concurrent.futures import ThreadPoolExecutor
+
 import pyfastx
 
 import platon

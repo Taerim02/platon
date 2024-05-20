@@ -1,7 +1,8 @@
-import pyhmmer
-import os 
 import argparse
 import csv
+import os 
+
+import pyhmmer
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("faa_file", help="Input FASTA file")

@@ -1,7 +1,7 @@
-import os
-import re
 import csv
 import logging
+import os
+import re
 import subprocess as sp
 
 import pyfastx
