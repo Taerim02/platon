@@ -458,7 +458,7 @@ def train_gene_prediction(contigs):
     return training_info
     
 
-def predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode, training_info = None):
+def predict_orfs(contigs, record, proteins_path, pyrodigal_metamode, training_info = None):
     orf_finder = pyrodigal.GeneFinder(training_info, meta=pyrodigal_metamode, closed=True, mask=True)
     genes = orf_finder.find_genes(str(record.seq))
     with open(str(proteins_path), "a") as dst:
@@ -498,7 +498,7 @@ def construct_hit_dict(hits, hit, orf, inclued_hmm_id = False):
     return hit
     
 
-def search_amr_genes_py(contigs, filteredProteinsPath):
+def search_amr_genes(contigs, filteredProteinsPath):
     """Search for AMR genes."""
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('ncbifam-amr'))
@@ -525,7 +525,7 @@ def search_amr_genes_py(contigs, filteredProteinsPath):
     return
 
 
-def search_replication_genes_py(contigs, filteredProteinsPath):
+def search_replication_genes(contigs, filteredProteinsPath):
     """Search for replication genes."""
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('replication'))
@@ -552,7 +552,7 @@ def search_replication_genes_py(contigs, filteredProteinsPath):
     return
 
 
-def search_mobilization_genes_py(contigs, filteredProteinsPath):
+def search_mobilization_genes(contigs, filteredProteinsPath):
     """Search for mobilization genes."""
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('mobilization'))
@@ -579,7 +579,7 @@ def search_mobilization_genes_py(contigs, filteredProteinsPath):
     return
 
 
-def search_conjugation_genes_py(contigs, filteredProteinsPath):
+def search_conjugation_genes(contigs, filteredProteinsPath):
     """Search for conjugation genes."""
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('conjugation'))

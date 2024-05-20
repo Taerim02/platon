@@ -31,11 +31,11 @@ def main(raw_contigs, contigs, args, log, output_path):
     if pyrodigal_metamode:
         log.info('ORFs: execute pyrodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
         for record in pyfastx.Fasta(str(cfg.genome_path)): 
-            pf.predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode)
+            pf.predict_orfs(contigs, record, proteins_path, pyrodigal_metamode)
     else:
         log.info('ORFs: Execute pyrodigal in genomic mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
         for record in pyfastx.Fasta(str(cfg.genome_path)): 
-            pf.predict_orfs_py(contigs, record, proteins_path, pyrodigal_metamode, training_info)
+            pf.predict_orfs(contigs, record, proteins_path, pyrodigal_metamode, training_info)
             
     if(proteins_path is None):
         sys.exit('Error: ORF prediction failed!')
@@ -173,7 +173,7 @@ def main(raw_contigs, contigs, args, log, output_path):
             fh.write(f"{contig['sequence']}\n")
 
     with ThreadPoolExecutor(max_workers=args.threads) as tpe:
-        for fn in (pf.search_replication_genes_py, pf.search_mobilization_genes_py, pf.search_conjugation_genes_py, pf.search_amr_genes_py):
+        for fn in (pf.search_replication_genes, pf.search_mobilization_genes, pf.search_conjugation_genes, pf.search_amr_genes):
             tpe.submit(fn, scored_contigs, filtered_proteins_path)
         for id, contig in scored_contigs.items():
             tpe.submit(pf.test_circularity, contig)
