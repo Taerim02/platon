@@ -13,6 +13,7 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 
 args = parser.parse_args()
 
+# set the variable needed to store data
 contigs= {}
 tsv_header = ['contig', 'contig_start', 'contig_end', 'plasmid_start', 'plasmid_end', 'plasmid_id', 'plasmid_length', 'coverage', 'identity']
 

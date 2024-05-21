@@ -11,9 +11,10 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 
 args = parser.parse_args()
 
-hits_per_pos = {}
-tsv_header = ['contig', 'type', 'start', 'end', 'strand', 'identity', 'coverage', 'bitscore', 'hit_pos']
 
+# set the variable needed to store data
+tsv_header = ['contig', 'type', 'start', 'end', 'strand', 'identity', 'coverage', 'bitscore', 'hit_pos']
+hits_per_pos = {}
 
 if os.path.getsize(args.inc_output) > 0:
     with open(args.inc_output,"r") as fh:

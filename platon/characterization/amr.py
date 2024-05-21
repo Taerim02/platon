@@ -12,15 +12,15 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 
 args = parser.parse_args()
 
-# set a faa file and the file name  from the input file
+# set a faa file and the file name from the input file
 file_name = os.path.splitext(os.path.basename(str(args.faa_file)))[0]
 sequence_database_path = str(args.faa_file)  
 
-# set the variable needed to store information processed by pyhmmer
+# set the variable needed to store data processed by pyhmmer
 tsv_header = ['contig', 'type', 'orf_id', 'bitscore', 'evalue', 'hmm-id']
 hits_set= set()
 
-# process the information from the pyhmmer
+# process the data with the pyhmmer
 with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
     proteins = seq_file.read_block()
 with pyhmmer.plan7.HMMFile(args.db_path) as hmm_file:

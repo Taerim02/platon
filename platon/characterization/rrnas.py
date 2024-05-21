@@ -10,7 +10,9 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 
 args = parser.parse_args()
 
+# set the variable needed to store data
 tsv_header = ['contig', 'type', 'start', 'end', 'strand', 'bitscore', 'evalue']
+
 if os.path.getsize(args.rrnas_output) > 0:
     with open(args.rrnas_output, "r") as fh:
         for line in fh:

@@ -10,6 +10,7 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 
 args = parser.parse_args()
 
+# set the variable needed to store data
 tsv_header = ['contig', 'contig_start', 'contig_end', 'orit_start', 'orit_end', 'orit_id', 'orit_length', 'coverage', 'identity']
 
 if os.path.getsize(args.orit_output) > 0:

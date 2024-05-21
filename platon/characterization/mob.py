@@ -16,13 +16,14 @@ args = parser.parse_args()
 file_name = os.path.splitext(os.path.basename(str(args.faa_file)))[0]
 sequence_database_path = str(args.faa_file)  
 
-# set the variable needed to store information processed by pyhmmer
+# set the variable needed to store data processed by pyhmmer
 tsv_header = ['contig', 'type', 'orf_id', 'bitscore', 'evalue']
 hits_set = set()
 
 with pyhmmer.easel.SequenceFile(sequence_database_path, digital=True) as seq_file:
     proteins = seq_file.read_block()
 
+# process the data with the pyhmmer
 with pyhmmer.plan7.HMMFile(args.db_path) as hmm_file:
     for hits in pyhmmer.hmmsearch(hmm_file, proteins, cpus=1, E=1e-10):
         for hit in hits:

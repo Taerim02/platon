@@ -7,8 +7,6 @@ from pathlib import Path
 import pyfastx
 
 
-
-
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("--tmpdir", nargs='?', default=os.getcwd(), help="Output directory")
@@ -45,6 +43,7 @@ def write_sequence_to_file(contig, contig_split_position, header):
         fh.write(sequence +'\n ')
     return file_path, sequence
 
+# set the variable needed to store data
 tsv_header = ['contig', 'length', 'mismatches', 'prime5End', 'prime3Start', 'prime3End', 'seq-a-len', 'seq-b-len']
 
 for id, contig in contigs.items():
