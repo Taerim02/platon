@@ -50,7 +50,7 @@ def proc_error(var, var_error, proc, cmd, contig):
             '%s: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
             var, contig['id'], cmd, proc.stdout, proc.stderr
         )
-    return
+        return
 
 
 def contigs_into_chunks(contigs, contig_size, output_path):

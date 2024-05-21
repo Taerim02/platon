@@ -141,9 +141,7 @@ def main(raw_contigs, contigs, args, log, output_path):
         if(args.verbose):
             print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
             print('characterize contigs...')
-            
-    # the first Snakemake session starts for non-characsteristic part. 
-    name = pf.get_base_name(cfg.genome_path)
+
     
     pf.fasta_into_chunk_contigs(scored_contigs, pc.DEFAULT_CONTIG_SIZE, output_path)
     pf.faa_into_chunk_contigs(pc.DEFAULT_CONTIG_SIZE, output_path)
