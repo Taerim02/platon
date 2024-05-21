@@ -14,9 +14,6 @@ import platon.constants as pc
 
 log = logging.getLogger('functions')
 
-def get_base_name(file_name):
-    return os.path.splitext(os.path.basename(file_name))[0]
-
 
 def write_sequence_to_file(contig, contig_split_position, header):
     file_path = cfg.tmp_path.joinpath(f"{contig['id']}-{header}.fasta")
@@ -53,7 +50,7 @@ def proc_error(var, var_error, proc, cmd, contig):
             '%s: contig=%s, cmd=%s, stdout=\'%s\', stderr=\'%s\'',
             var, contig['id'], cmd, proc.stdout, proc.stderr
         )
-        return
+    return
 
 
 def contigs_into_chunks(contigs, contig_size, output_path):
