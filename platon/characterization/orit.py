@@ -2,6 +2,8 @@ import argparse
 import csv
 import os
 
+"""Search for oriT sequence hits in the metagenomic module of platon."""
+
 parser = argparse.ArgumentParser(description="Process FASTA file for OriT detection")
 parser.add_argument("orit_output", help="Input FASTA file")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
@@ -13,6 +15,7 @@ args = parser.parse_args()
 # set the variable needed to store data
 tsv_header = ['contig', 'contig_start', 'contig_end', 'orit_start', 'orit_end', 'orit_id', 'orit_length', 'coverage', 'identity']
 
+# extract information and store into tsv file
 if os.path.getsize(args.orit_output) > 0:
     with open(args.orit_output,"r") as fh:
         for line in fh:

@@ -4,6 +4,8 @@ import os
 
 import pyhmmer
 
+"""Search for conjugation genes in the metagenomic module of platon."""
+
 parser = argparse.ArgumentParser(description="Process FASTA file for Conjugation gene detection")
 parser.add_argument("faa_file", help="Input FASTA file")
 parser.add_argument("--db_path", help="db path")

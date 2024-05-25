@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pyfastx
 
+"""Test if contigs can be circularized in the metagenomic module of platon."""
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
@@ -16,8 +17,6 @@ parser.add_argument("--verbose", action="store_true", help="Enable verbose outpu
 parser.add_argument("--min", help="minimum circular basepair overlap")
 
 args = parser.parse_args()
-
-file_name = os.path.splitext(os.path.basename(str(args.fasta_file)))[0]
 
 contigs = {}
 
@@ -69,7 +68,8 @@ for id, contig in contigs.items():
 
     if(proc.returncode != 0):
         print('failed')
-        
+
+    # parse results about circularity and store them into tsv file   
     has_match = False
     with tmpdir_path.joinpath(f"{contig['id']}.delta").open() as fh:
         for line in fh:

@@ -16,6 +16,8 @@ log = logging.getLogger('functions')
 
 
 def write_sequence_to_file(contig, contig_split_position, header):
+    """divide a contig into two."""
+
     file_path = cfg.tmp_path.joinpath(f"{contig['id']}-{header}.fasta")
     if header == 'a':
         sequence = contig['sequence'][:contig_split_position]
@@ -28,6 +30,8 @@ def write_sequence_to_file(contig, contig_split_position, header):
 
 
 def run_command(cmd, env=False):
+    """Run cmd."""
+
     env = cfg.env if env else None
     proc = sp.run(
         cmd,
@@ -41,6 +45,8 @@ def run_command(cmd, env=False):
 
 
 def proc_error(var, var_error, proc, cmd, contig):
+    """Log error return from cmd."""
+
     if(proc.returncode != 0):
         log.warning(
             '%s failed! contig=%s, %s=%d',
@@ -54,6 +60,8 @@ def proc_error(var, var_error, proc, cmd, contig):
 
 
 def contigs_into_chunks(contigs, contig_size, output_path):
+    """Divide a Fasta file in chunks."""
+
     current_list = []
     current_size = 0
     i = 1
@@ -88,6 +96,8 @@ def contigs_into_chunks(contigs, contig_size, output_path):
 
 
 def fasta_into_chunk_contigs(contigs, contig_size, output_path):
+    """Divide a fasta file in chunks."""
+
     current_list = []
     current_size = 0
     i = 1
@@ -122,6 +132,8 @@ def fasta_into_chunk_contigs(contigs, contig_size, output_path):
 
 
 def faa_into_chunk_contigs(contig_size, output_path):
+    """Divide a faa file in chunks."""
+
     contigs_to_save = []
     current_size = 0
     i = 0
@@ -160,6 +172,7 @@ def faa_into_chunk_contigs(contig_size, output_path):
 
 def test_circularity(contig):
     """Test if this contig can be circularized."""
+
     contig_split_position = int(contig['length'] / 2)
     contig_fragment_a_path, contig_fragment_a_seq = write_sequence_to_file(contig, contig_split_position, 'a')
     contig_fragment_b_path, contig_fragment_b_seq = write_sequence_to_file(contig, contig_split_position, 'b')
@@ -220,6 +233,7 @@ def test_circularity(contig):
 
 def search_inc_type(contig):    
     """Search for incompatibility motifs."""
+
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.inc.blast.out")
     cmd = [
@@ -271,6 +285,7 @@ def search_inc_type(contig):
 
 def search_rrnas(contig):
     """Search for ribosomal RNA sequences."""
+
     contig_path = cfg.tmp_path.joinpath(f"{contig['id']}.fasta")
     tmp_output_path = cfg.tmp_path.joinpath(f"{contig['id']}.rrna.cmscan.tsv")
     cmd = [
@@ -401,8 +416,8 @@ def search_orit_sequences(contig):
 
 
 def filter_contig(contig):
-    
     """Apply heuristic filters based on contig information."""
+
     # include all circular contigs
     if(contig['is_circular']):
         log.debug('filter: is circ! contig=%s', contig['id'])
@@ -443,8 +458,8 @@ def filter_contig(contig):
     return False
 
 def train_gene_prediction(contigs): 
-    """ Train gene prodiction for the genomic mode"""
-    
+    """Train gene prodiction."""
+
     log.info('create prodigal training info object: meta=%s, not pyrodigal_metamode')
     training_info = None
     orf_finder = pyrodigal.GeneFinder(meta= False, closed=True)
@@ -456,6 +471,8 @@ def train_gene_prediction(contigs):
     
 
 def predict_orfs(contigs, record, proteins_path, pyrodigal_metamode, training_info = None):
+    """Predict ORFs."""
+
     orf_finder = pyrodigal.GeneFinder(training_info, meta=pyrodigal_metamode, closed=True, mask=True)
     genes = orf_finder.find_genes(str(record.seq))
     with open(str(proteins_path), "a") as dst:
@@ -480,6 +497,8 @@ def predict_orfs(contigs, record, proteins_path, pyrodigal_metamode, training_in
     
 
 def construct_hit_dict(hits, hit, orf, inclued_hmm_id = False):
+    """Construct a dictionary for a hit."""
+
     if inclued_hmm_id:
       hmm_id = hit.best_domain.alignment.hmm_accession.decode()
     hit = {
@@ -524,6 +543,7 @@ def search_amr_genes(contigs, filteredProteinsPath):
 
 def search_replication_genes(contigs, filteredProteinsPath):
     """Search for replication genes."""
+
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('replication'))
     sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
@@ -551,6 +571,7 @@ def search_replication_genes(contigs, filteredProteinsPath):
 
 def search_mobilization_genes(contigs, filteredProteinsPath):
     """Search for mobilization genes."""
+
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('mobilization'))
     sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
@@ -578,6 +599,7 @@ def search_mobilization_genes(contigs, filteredProteinsPath):
 
 def search_conjugation_genes(contigs, filteredProteinsPath):
     """Search for conjugation genes."""
+
     hits_set = set()
     hmm_profile_path = str(cfg.db_path.joinpath('conjugation'))
     sequence_database_path = str(filteredProteinsPath)  # Replace with your sequence database file path
@@ -603,11 +625,9 @@ def search_conjugation_genes(contigs, filteredProteinsPath):
     return
 
 
-def merge_dicts(dict1, dict2):
-    return {**dict1, **dict2}
+def parse_function_info_rrnas(contigs:dict, tsv_file:str, index:str, output_path): 
+    """Parse results about ribosomal RNA sequences and store them in contigs.""" 
 
-
-def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_path): 
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
@@ -629,7 +649,9 @@ def extract_function_info_rnnas(contigs:dict, tsv_file:str, index:str, output_pa
     return 
         
 
-def extract_function_info_inc(contigs:dict, tsv_file:str, index:str, output_path): 
+def parse_function_info_inc(contigs:dict, tsv_file:str, index:str, output_path): 
+    """Parse results about incompatibility motifs and store them in contigs."""
+
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         hits_dict = {}
@@ -661,7 +683,9 @@ def extract_function_info_inc(contigs:dict, tsv_file:str, index:str, output_path
     return 
     
     
-def extract_function_info_ref(contigs:dict, tsv_file:str, index:str, output_path): 
+def parse_function_info_ref(contigs:dict, tsv_file:str, index:str, output_path): 
+    """Parse results about reference plasmid hits and store them in contigs."""
+
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
@@ -686,7 +710,9 @@ def extract_function_info_ref(contigs:dict, tsv_file:str, index:str, output_path
     log.info('%s: found %d number contigs!', index, len([k for k, v in contigs.items() if len(v[index]) > 0])) 
     return
     
-def extract_function_info_orit(contigs:dict, tsv_file:str, index:str, output_path): 
+def parse_function_info_orit(contigs:dict, tsv_file:str, index:str, output_path): 
+    """Parse results about oriT sequence hits and store them in contigs."""
+
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
@@ -712,7 +738,9 @@ def extract_function_info_orit(contigs:dict, tsv_file:str, index:str, output_pat
     return
     
 
-def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path): 
+def parse_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path): 
+    """Parse results about circularity and store them in contigs."""
+
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t") 
         for row in reader:
@@ -735,7 +763,9 @@ def extract_function_info_cir(contigs:dict, tsv_file:str, index:str, output_path
     return
 
 
-def extract_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path:str):         
+def parse_function_info_hmm(contigs:dict, tsv_file:str, index:str, output_path:str):     
+    """Parse results about characterization and store them in contigs."""
+
     hits_set = set()
     with open(os.path.join(output_path.joinpath('tmp/function'), tsv_file),"r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")

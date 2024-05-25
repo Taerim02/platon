@@ -4,6 +4,8 @@ import os
 
 import pyfastx
 
+"""Search for reference plasmid hits in the metagenomic module of platon."""
+
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("contig_file", help="Input FASTA file")
 parser.add_argument("ref_output", help="ref ouput file")

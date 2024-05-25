@@ -4,6 +4,8 @@ import os
 
 import pyhmmer
 
+"""Search for replication genes in the metagenomic module of platon."""
+
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("faa_file", help="Input FASTA file")
 parser.add_argument("--db_path", help="db path")

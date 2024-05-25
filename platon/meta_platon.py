@@ -36,7 +36,7 @@ def main(raw_contigs, contigs, args, log, output_path):
     pf.contigs_into_chunks(contigs, pc.DEFAULT_CONTIG_SIZE, output_path)
 
 
-    # first Snakemake session starts for non-characsteristic part. 
+    # run snakefile1 to obtain non-characterization analysis results.
     result1 = snakemake(
         snakefile="platon/snakefiles/Snakefile1",
         workdir= output_path,
@@ -57,7 +57,7 @@ def main(raw_contigs, contigs, args, log, output_path):
     if(args.verbose):
       print('predict ORFs...')
 
-    # parse the result from pyrodigal: ORF.
+    # pares the results from Pyrodigal and store them in contigs.
     with open(output_path.joinpath('tmp/orf/orf.tsv'), "r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
@@ -70,7 +70,7 @@ def main(raw_contigs, contigs, args, log, output_path):
                 }
                 contigs[row['contig']]['orfs'][int(row['id'])] = orf
                 
-    # Calculate total number of ORFs
+    # calculate total number of ORFs.
     no_orfs = sum(len(contigs[k]['orfs']) for k in contigs)  
     
     if(args.verbose):
@@ -90,12 +90,12 @@ def main(raw_contigs, contigs, args, log, output_path):
             print(f'\tdiscarded {no_removed_contigs} contig(s) without ORFs')
         contigs = tmp_contigs
         log.info('ORF contig filter: # discarded=%s, # remaining=%s', no_removed_contigs, len(contigs))
-        
-    
+
+
     if(args.verbose):
       print('search marker protein sequences (MPS)...')
       
-    # Calculate total number of MPS
+    # calculate total number of MPS.
     no_mps = 0
     with open(output_path.joinpath("tmp/mps/protein_id.tsv"), "r") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
@@ -108,9 +108,11 @@ def main(raw_contigs, contigs, args, log, output_path):
     
     log.info('MPS detection: # MPS=%d', no_mps)
     
+
     if(args.verbose):
         print('compute replicon distribution scores (RDS)...')
-                   
+
+    # parse protein score information and store it in contigs.               
     protein_score_files = os.listdir(output_path.joinpath('tmp/protein_score'))
     for fh in protein_score_files:
         with open(os.path.join(output_path.joinpath('tmp/protein_score'), fh),"r") as fh:
@@ -121,7 +123,9 @@ def main(raw_contigs, contigs, args, log, output_path):
                 log.info(
                     'contig RDS: contig=%s, RDS=%f, score-sum=%f, #ORFs=%d',
                     contig_id, float(row["RDS"]), float(row["score_sum"]), int(row["ORFs"]))
-                  
+    
+    # filter contigs based on conservative protein score threshold
+    # RDS_SENSITIVITY_THRESHOLD and execute per contig analyses in parallel              
     scored_contigs = {}
     if(args.characterize):
         scored_contigs = contigs
@@ -142,17 +146,16 @@ def main(raw_contigs, contigs, args, log, output_path):
             print(f'\texcluded {no_excluded_contigs} contigs by SNT filter')
             print('characterize contigs...')
 
-    
+    # devide scored contigs into chunks
     pf.fasta_into_chunk_contigs(scored_contigs, pc.DEFAULT_CONTIG_SIZE, output_path)
     pf.faa_into_chunk_contigs(pc.DEFAULT_CONTIG_SIZE, output_path)
       
-    # second snakemake part starts for the characteristic part.
+    # run snakefile2 to obtain characterization analysis results
     result2 = snakemake(
         snakefile="platon/snakefiles/Snakefile2",
         workdir= output_path,
         config={"current_path": Path.cwd(), "min_circ_basepair_overlap":pc.MIN_CIRC_BASEPAIR_OVERLAP},
         cores=cfg.threads, scheduler="greedy", quiet=True)
-    
     
     if result2:
         if(args.verbose):
@@ -163,16 +166,16 @@ def main(raw_contigs, contigs, args, log, output_path):
             print("Workflow for characterization failed.")
         log.debug("Workflow for characterization failed.")
 
-    # parse the result from the characteristic part.
-    hmm = ['amr_hits', 'conjugation_hits', 'mobilization_hits', 'replication_hits']                  
+    hmm = ['amr_hits', 'conjugation_hits', 'mobilization_hits', 'replication_hits']    
 
+    # parse the results of the characterization analysis and store them in contigs.              
     for names in [ ['amr.tsv','amr_hits'], ['rrnas.tsv','rrnas'], ['orit.tsv','orit_hits'], ['cir.tsv','is_circular'], ['inc.tsv','inc_types'], 
             ['ref.tsv','plasmid_hits'], ['mob.tsv','mobilization_hits'], ['rep.tsv','replication_hits'], ['conj.tsv','conjugation_hits']]:
             
         if names[1] in hmm: 
             pf.extract_function_info_hmm(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'rrnas':
-            pf.extract_function_info_rnnas(scored_contigs, names[0], names[1], output_path)
+            pf.extract_function_info_rrnas(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'inc_types':
             pf.extract_function_info_inc(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'plasmid_hits':

@@ -2,6 +2,7 @@ import argparse
 import csv
 import os
 
+"""Search for incompatibility motifs in the metagenomic module of platon."""
 
 parser = argparse.ArgumentParser(description="Process FASTA Incompatibility groups detection")
 parser.add_argument("inc_output", help="Input FASTA file")
@@ -16,6 +17,7 @@ args = parser.parse_args()
 tsv_header = ['contig', 'type', 'start', 'end', 'strand', 'identity', 'coverage', 'bitscore', 'hit_pos']
 hits_per_pos = {}
 
+# extract information and store into tsv file
 if os.path.getsize(args.inc_output) > 0:
     with open(args.inc_output,"r") as fh:
         for line in fh:

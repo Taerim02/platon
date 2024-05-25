@@ -173,6 +173,7 @@ def main(raw_contigs, contigs, args, log, output_path):
             fh.write(f">{contig['id']}\n")
             fh.write(f"{contig['sequence']}\n")
 
+    # init thread pool to parallize io bound analyses
     with ThreadPoolExecutor(max_workers=args.threads) as tpe:
         for fn in (pf.search_replication_genes, pf.search_mobilization_genes, pf.search_conjugation_genes, pf.search_amr_genes):
             tpe.submit(fn, scored_contigs, filtered_proteins_path)
@@ -193,7 +194,7 @@ def main(raw_contigs, contigs, args, log, output_path):
     else:                          
         filtered_contigs = {k: v for (k, v) in scored_contigs.items() if pf.filter_contig(v)}
 
-    # lookup AMR genes
+    # lookup AMR genes with creating amr_genes dictionary and then match hmm-id.
     amr_genes = {}
     with cfg.db_path.joinpath('ncbifam-amr.tsv').open() as fh:
         for line in fh:
@@ -214,7 +215,6 @@ def main(raw_contigs, contigs, args, log, output_path):
     log.debug('removed tmp dir: %s', cfg.tmp_path)
 
     
-    # change the information about each contig
     # print results to tsv file and STDOUT
     tmp_output_path = output_path.joinpath(f'{cfg.prefix}.tsv')
     log.debug('output: tsv=%s', tmp_output_path)

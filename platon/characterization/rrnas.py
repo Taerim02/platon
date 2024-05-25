@@ -2,6 +2,8 @@ import argparse
 import csv
 import os
 
+"""Search for ribosomal RNA sequences in the metagenomic module of platon."""
+
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("rrnas_output", help="Input FASTA file")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
