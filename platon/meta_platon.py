@@ -173,17 +173,17 @@ def main(raw_contigs, contigs, args, log, output_path):
             ['ref.tsv','plasmid_hits'], ['mob.tsv','mobilization_hits'], ['rep.tsv','replication_hits'], ['conj.tsv','conjugation_hits']]:
             
         if names[1] in hmm: 
-            pf.extract_function_info_hmm(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_hmm(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'rrnas':
-            pf.extract_function_info_rrnas(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_rrnas(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'inc_types':
-            pf.extract_function_info_inc(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_inc(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'plasmid_hits':
-            pf.extract_function_info_ref(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_ref(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'orit_hits':
-            pf.extract_function_info_orit(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_orit(scored_contigs, names[0], names[1], output_path)
         elif names[1] == 'is_circular':
-            pf.extract_function_info_cir(scored_contigs, names[0], names[1], output_path)
+            pf.parse_function_info_cir(scored_contigs, names[0], names[1], output_path)
         
     # lookup AMR genes with creating amr_genes dictionary and then match hmm-id.
     amr_genes = {}
