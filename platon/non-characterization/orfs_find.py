@@ -9,7 +9,6 @@ import pyfastx
 
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("fasta_file", help="Input FASTA file")
-parser.add_argument("--name", help="original fasta file name for generating a log file")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument("--verbose", help="Enable verbose output")
 
