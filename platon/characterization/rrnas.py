@@ -7,8 +7,6 @@ import os
 parser = argparse.ArgumentParser(description="Process FASTA file for ORF detection")
 parser.add_argument("rrnas_output", help="Input FASTA file")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
-parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
 args = parser.parse_args()
 

@@ -12,8 +12,6 @@ parser = argparse.ArgumentParser(description="Process FASTA file for ORF detecti
 parser.add_argument("fasta_file", help="Input FASTA file")
 parser.add_argument("--tmpdir", nargs='?', default=os.getcwd(), help="Output directory")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument('--characterize', '-c', action='store_true', help='deactivate filters; characterize all contigs')
-parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 parser.add_argument("--min", help="minimum circular basepair overlap")
 
 args = parser.parse_args()

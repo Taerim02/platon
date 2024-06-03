@@ -12,8 +12,6 @@ parser.add_argument("tsv_file", help="TSV FASTA file")
 parser.add_argument("orf_file", help="orf_file")
 parser.add_argument("--mps", help="mps path")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument('--characterize', '-c', action='store_true', help="deactivate filters; characterize all contigs")
-parser.add_argument("--verbose", help="Enable verbose output")
 parser.add_argument("--min", help="minimum protein identity")
 args = parser.parse_args()
 

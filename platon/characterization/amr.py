@@ -10,7 +10,6 @@ parser = argparse.ArgumentParser(description="Process FASTA file for AMR gene de
 parser.add_argument("faa_file", help="Input FASTA file")
 parser.add_argument("--db_path", help="db path")
 parser.add_argument("--output", nargs='?', default=os.getcwd(), help="Output directory")
-parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
 args = parser.parse_args()
 
