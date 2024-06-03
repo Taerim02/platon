@@ -41,9 +41,8 @@ rule find_orfs:
         orf_tsv = "tmp/orf/{file_name}_{i}_orf.tsv",
     params:
         outdir='tmp',
-        verbose = cfg.verbose
     shell:
-        'python {current_path}/platon/non-characterization/orfs_find.py --verbose {params.verbose} --output {params.outdir} {input.fasta_file}' 
+        'python {current_path}/platon/non-characterization/orfs_find.py --output {params.outdir} {input.fasta_file}' 
 
 
 
@@ -74,10 +73,9 @@ rule filter_rds:
         protein_id = 'tmp/mps/{file_name}_{i}_protein_id.tsv'
     params:
         mps = cfg.db_path.joinpath('mps.tsv'),
-        outdir= 'tmp',
-        verbose = cfg.verbose
+        outdir= 'tmp'
     shell:         
-        'python {current_path}/platon/non-characterization/rds_filter.py --verbose {params.verbose} --mps {params.mps} --output {params.outdir} --min {min_protein_identity} {input}'
+        'python {current_path}/platon/non-characterization/rds_filter.py --mps {params.mps} --output {params.outdir} --min {min_protein_identity} {input}'
         
 rule integrate_protein:
     input:
