@@ -460,13 +460,12 @@ def filter_contig(contig):
 def train_gene_prediction(contigs): 
     """Train gene prodiction."""
 
-    log.info('create prodigal training info object: meta=%s, not pyrodigal_metamode')
     training_info = None
     orf_finder = pyrodigal.GeneFinder(meta= False, closed=True)
     seqs = [contig['sequence'] for id, contig in contigs.items()]
     combined_sequence = ''.join(seqs)
     bytes_combined_sequence = combined_sequence.encode('utf-8')
-    training_info = orf_finder.train(bytes_combined_sequence) ##  list comprehsion
+    training_info = orf_finder.train(bytes_combined_sequence) 
     return training_info
     
 
