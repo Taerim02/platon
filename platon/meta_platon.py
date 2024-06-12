@@ -22,7 +22,7 @@ def main(raw_contigs, contigs, args, log, output_path):
         os.mkdir(output_path.joinpath('tmp'))
 
         
-    for folder in [ "rrnas", "orit", "inc", "ref", 'orf', 'function', 'chunk', 'protein', 'protein_score', 'mps', 'log']:
+    for folder in [ "rrnas", "orit", "inc", "ref", 'orf', 'function', 'chunk', 'protein', 'protein_score', 'mps']:
         if not os.path.exists(output_path.joinpath(f'tmp/{folder}')):
             os.mkdir(output_path.joinpath(f'tmp/{folder}'))
 

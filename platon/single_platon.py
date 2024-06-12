@@ -27,7 +27,6 @@ def main(raw_contigs, contigs, args, log, output_path):
     """Predict open reading frames with Pyrodigal."""
     genome_size = sum([v['length'] for k, v in contigs.items()])
     pyrodigal_metamode =  cfg.characterize and genome_size < 50000
-    training_info = pf.train_gene_prediction(contigs)
     
     if pyrodigal_metamode:
         log.info('ORFs: execute pyrodigal in meta mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
@@ -35,6 +34,7 @@ def main(raw_contigs, contigs, args, log, output_path):
             pf.predict_orfs(contigs, record, proteins_path, pyrodigal_metamode)
     else:
         log.info('ORFs: Execute pyrodigal in genomic mode! characterize=%s, genome-size=%d, metagenome=%s', cfg.characterize, genome_size, cfg.metagenome)
+        training_info = pf.train_gene_prediction(contigs)
         for record in pyfastx.Fasta(str(cfg.genome_path)): 
             pf.predict_orfs(contigs, record, proteins_path, pyrodigal_metamode, training_info)
             
