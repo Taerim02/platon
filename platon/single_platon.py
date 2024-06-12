@@ -236,4 +236,4 @@ def main(raw_contigs, contigs, args, log, output_path):
         else:
             print('No potential plasmid contigs found!')
             print(pc.HEADER)
-    return raw_contigs, contigs, filtered_contigs
+    return filtered_contigs

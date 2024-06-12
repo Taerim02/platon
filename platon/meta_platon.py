@@ -239,4 +239,4 @@ def main(raw_contigs, contigs, args, log, output_path):
     shutil.rmtree(output_path.joinpath('tmp'), ignore_errors=True)
     log.debug('removed tmp dir: %s', cfg.tmp_path)
 
-    return raw_contigs, contigs, filtered_contigs
+    return filtered_contigs
