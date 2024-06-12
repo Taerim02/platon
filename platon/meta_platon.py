@@ -11,7 +11,7 @@ import platon.constants as pc
 import platon.functions as pf
 
 
-def main(raw_contigs, contigs, args, log, output_path):
+def main(contigs, args, log, output_path):
     '''
     This is the metagenomic module of platon to scale better for large-size datasets.
     Snakemake is used to help parallel computing in order to improve running time.

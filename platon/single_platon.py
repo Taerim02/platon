@@ -13,7 +13,7 @@ import platon.functions as pf
 
 
 
-def main(raw_contigs, contigs, args, log, output_path):
+def main(contigs, args, log, output_path):
     '''
     This is the genomic module of platon, which is the default module.
     '''
